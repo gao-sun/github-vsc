@@ -35,6 +35,14 @@ const config = {
           },
         ],
       },
+      {
+        test: /\.html$/i,
+        use: [
+          {
+            loader: 'raw-loader',
+          },
+        ],
+      },
     ],
   },
 };

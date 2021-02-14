@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ControlPanelView } from './control-panel-view';
 import { GitHubFS } from './github-fs';
 import init from './init';
 
@@ -8,6 +9,9 @@ init();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   context.subscriptions.push(new GitHubFS('octokit', 'core.js'));
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider('github-vsc-control-panel', new ControlPanelView()),
+  );
 
   // local debug
   if (typeof navigator !== 'object') {

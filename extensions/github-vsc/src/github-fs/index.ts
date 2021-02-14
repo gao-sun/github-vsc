@@ -14,6 +14,7 @@ import {
   FileSystemProvider,
   FileType,
   Uri,
+  window,
   workspace,
 } from 'vscode';
 import { Directory, Entry, GitHubLocation } from './types';
