@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
 import { Directory, Entry, File, GitHubLocation } from './types';
 

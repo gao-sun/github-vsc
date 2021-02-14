@@ -5,5 +5,9 @@
 		"applicationName": "github-vsc",
 		"dataFolderName": ".vscode-web",
 		"version": "1.0.0"
+	},
+	"folderUri": {
+		"scheme": "github-fs",
+		"path": "/"
 	}
 }
