@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub VSC Control Panel</title>
+</head>
+<style>
+  p {
+    color: var(--vscode-descriptionForeground);
+  }
+
+  button {
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    padding: 2px 8px;
+    outline: none;
+  }
+
+  button:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  button:active,
+  button:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  button.secondary {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+  }
+
+  button.secondary:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  .spacer {
+    flex-grow: 1;
+  }
+
+  .dot {
+    border-radius: 50%;
+    width: 6px;
+    height: 6px;
+    background: var(--vscode-descriptionForeground);
+  }
+
+  .pat-control {
+    display: flex;
+    align-items: center;
+  }
+
+  .pat-control > .dot {
+    margin-right: 8px;
+  }
+
+  .pat-control.enabled > .dot {
+    background: var(--vscode-charts-green);
+  }
+
+  .pat-control > button + button {
+    margin-left: 4px;
+  }
+</style>
+<body>
+  <div id="root"></div>
+  <h4>GitHub Personal Access Token</h4>
+  <div class="pat-control">
+    <div class="dot"></div>
+    <div class="status">Not in Use</div>
+    <input id="pat-input" type="text" hidden>
+    <div class="spacer"></div>
+    <button id="pat-setup">setup</button>
+    <button id="pat-remove" class="secondary" hidden>remove</button>
+  </div>
+  <p>For unauthenticated requests, the rate limit is 60 per hour. It will increase to 5,000 per hour with your PAT.</p>
+</body>
+<script>
+  const $ = function (selector) {
+    return document.querySelector(selector);
+  }
+
+  var pat;
+
+  function updatePatControl() {
+    if (pat) {
+      $('.pat-control').classList.add('enabled');
+      $('.pat-control > .status').innerText = `Enabled (***${pat.slice(-4)})`;
+      $('#pat-setup').innerText = 'update';
+      $('#pat-remove').removeAttribute('hidden');
+    } else {
+      $('.pat-control').classList.remove('enabled');
+      $('.pat-control > .status').innerText = 'Not in Use';
+      $('#pat-setup').innerText = 'setup';
+      $('#pat-remove').setAttribute('hidden', true);
+    }
+  }
+
+  function updatePatControlState(state) {
+    if (state === 'editing') {
+      $('.pat-control .dot').setAttribute('hidden', true);
+    }
+  }
+
+  updatePatControl();
+</script>
+<script src="$SCRIPT_URI$"></script>
+</html>

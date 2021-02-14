@@ -17,6 +17,15 @@
         "curly": "warn",
         "eqeqeq": "error",
         "no-throw-literal": "warn",
-        "@typescript-eslint/no-empty-function": "off"
-    }
+        "@typescript-eslint/no-empty-function": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "off"
+    },
+    "overrides": [
+        {
+          "files": ["*.ts"],
+          "rules": {
+            "@typescript-eslint/explicit-module-boundary-types": ["error"]
+          }
+        }
+      ]
 }

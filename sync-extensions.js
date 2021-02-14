@@ -1,5 +1,6 @@
 const fs = require('fs');
 const fse = require('fs-extra');
+const debounce = require('debounce-fn');
 
 if (fs.existsSync(`./app/dist/extensions/github-vsc`)) {
   fs.rmdirSync(`./app/dist/extensions/github-vsc`, { recursive: true });
@@ -18,13 +19,18 @@ fs.watch('./extensions/github-vsc/static', () => {
   console.log('done');
 });
 
-fs.watch('./extensions/github-vsc/dist/extension.js', () => {
-  console.log('syncing dist');
-  fse.copySync('./extensions/github-vsc/dist', './app/dist/extensions/github-vsc/dist', {
-    overwrite: true,
-  });
-  console.log('done');
-});
+const syncDist = debounce(
+  () => {
+    console.log('syncing dist');
+    fse.copySync('./extensions/github-vsc/dist', './app/dist/extensions/github-vsc/dist', {
+      overwrite: true,
+    });
+    console.log('done');
+  },
+  { wait: 100 },
+);
+
+fs.watch('./extensions/github-vsc/dist', syncDist);
 
 fs.watch('./extensions/github-vsc/package.json', () => {
   console.log('syncing package.json');

@@ -10,7 +10,10 @@ init();
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   context.subscriptions.push(new GitHubFS('octokit', 'core.js'));
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('github-vsc-control-panel', new ControlPanelView()),
+    vscode.window.registerWebviewViewProvider(
+      'github-vsc-control-panel',
+      new ControlPanelView(context.extensionUri),
+    ),
   );
 
   // local debug
