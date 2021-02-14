@@ -1,0 +1,26 @@
+{
+  "name": "github-vsc",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/gao-sun/github-vsc.git",
+  "author": "Gao Sun <gaosun.dev@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "build-vsc": "node build-vsc.js",
+    "prepare": "node prepare.js",
+    "dev": "node debug-server.js"
+  },
+  "devDependencies": {
+    "eslint": "^7.20.0",
+    "eslint-config-prettier": "^7.2.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "express": "^4.17.1",
+    "fs-extra": "^9.1.0",
+    "glob": "^7.1.6",
+    "prettier": "^2.2.1",
+    "rimraf": "^3.0.2",
+    "semver-umd": "^5.5.7",
+    "vscode-oniguruma": "^1.4.0",
+    "vscode-textmate": "^5.2.0"
+  }
+}

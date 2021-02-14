@@ -1,1 +1,9 @@
 .DS_Store
+node_modules/
+.nyc_output/
+coverage/
+dist/
+vscode/
+app/dist/
+app/lib/
+app/github-vsc.js

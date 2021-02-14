@@ -1,0 +1,18 @@
+{
+  "root": true,
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+},
+  "plugins": [
+      "prettier"
+  ],
+  "extends": [
+      "plugin:prettier/recommended"
+  ],
+  "rules": {
+      "curly": "warn",
+      "eqeqeq": "error",
+      "no-throw-literal": "warn"
+  }
+}

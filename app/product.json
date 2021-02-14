@@ -1,0 +1,9 @@
+{
+	"productConfiguration": {
+		"nameShort": "GitHub VSC",
+		"nameLong": "GitHub VSC",
+		"applicationName": "github-vsc",
+		"dataFolderName": ".vscode-web",
+		"version": "1.0.0"
+	}
+}
