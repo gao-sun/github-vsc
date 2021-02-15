@@ -21,6 +21,7 @@ import {
 import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
 import { ControlPanelView } from '../control-panel-view';
+import { showDocumentIfNeeded } from './helpers';
 
 export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposable {
   static scheme = 'github-fs';
@@ -42,8 +43,7 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(extensionContext: ExtensionContext, githubRef?: GitHubRef) {
-    this.githubRef = githubRef;
+  constructor(extensionContext: ExtensionContext, location?: GitHubLocation) {
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
@@ -55,6 +55,12 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
         new ControlPanelView(extensionContext),
       ),
     );
+
+    if (location) {
+      const { uri: _, ...githubRef } = location;
+      this.githubRef = githubRef;
+      showDocumentIfNeeded(this.root, location);
+    }
   }
 
   dispose(): void {
@@ -95,6 +101,7 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
     console.log('readFile', uri.path);
 
     const location = this.getLocation(uri);
+
     if (!location) {
       return Buffer.from('');
     }

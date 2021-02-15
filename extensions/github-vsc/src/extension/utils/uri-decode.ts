@@ -1,6 +1,7 @@
-import { commands } from 'vscode';
+import { commands, Uri } from 'vscode';
+import { GitHubFS } from '../github-fs';
 import { getMatchingRef, getRepo } from '../github-fs/apis';
-import { GitHubRef } from '../github-fs/types';
+import { GitHubLocation } from '../github-fs/types';
 
 export const getLocation = async (): Promise<Location> => {
   const location = await commands.executeCommand('github-vsc.location.fetch');
@@ -30,7 +31,9 @@ export const getDefaultBranch = async (owner: string, repo: string): Promise<Opt
   }
 };
 
-export const decodePathAsGitHubRef = async (path?: string): Promise<Optional<GitHubRef>> => {
+export const decodePathAsGitHubLocation = async (
+  path?: string,
+): Promise<Optional<GitHubLocation>> => {
   const [owner, repo, rest] = await decodePathAsOptionalStringArray(path);
 
   if (!owner || !repo) {
@@ -44,7 +47,7 @@ export const decodePathAsGitHubRef = async (path?: string): Promise<Optional<Git
     if (!defaultBranch) {
       return;
     }
-    return { owner, repo, ref: `refs/heads/${defaultBranch}` };
+    return { owner, repo, ref: `refs/heads/${defaultBranch}`, uri: GitHubFS.rootUri };
   }
 
   const [matchingRef] = rest.split('/');
@@ -60,12 +63,18 @@ export const decodePathAsGitHubRef = async (path?: string): Promise<Optional<Git
     });
 
     if (found) {
-      return { owner, repo, ref: found.ref };
+      const [, , ...values] = found.ref.split('/');
+      return {
+        owner,
+        repo,
+        ref: found.ref,
+        uri: Uri.joinPath(GitHubFS.rootUri, rest.slice(values.join('/').length)),
+      };
     }
 
     // fallback to default branch ref
     if (defaultBranch) {
-      return { owner, repo, ref: defaultBranch };
+      return { owner, repo, ref: defaultBranch, uri: Uri.joinPath(GitHubFS.rootUri, rest) };
     }
   } catch {
     console.error('error when getting matching ref', owner, repo);
