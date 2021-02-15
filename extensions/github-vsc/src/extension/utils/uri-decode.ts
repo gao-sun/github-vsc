@@ -57,18 +57,17 @@ export const decodePathAsGitHubLocation = async (
       getMatchingRef({ owner, repo, ref: matchingRef }, 'tag'),
     ]);
 
-    const found = [...branchData, ...tagData].find(({ ref }) => {
-      const [, , ...values] = ref.split('/');
-      return rest.startsWith(values.join('/'));
-    });
+    const found = [...branchData, ...tagData].find(({ ref }) =>
+      rest.startsWith(getShortenRef(ref)),
+    );
 
     if (found) {
-      const [, , ...values] = found.ref.split('/');
+      const shortenRef = getShortenRef(found.ref);
       return {
         owner,
         repo,
         ref: found.ref,
-        uri: Uri.joinPath(GitHubFS.rootUri, rest.slice(values.join('/').length)),
+        uri: Uri.joinPath(GitHubFS.rootUri, rest.slice(shortenRef.length)),
       };
     }
 
@@ -79,4 +78,12 @@ export const decodePathAsGitHubLocation = async (
   } catch {
     console.error('error when getting matching ref', owner, repo);
   }
+};
+
+export const getShortenRef = (ref: string): string => {
+  if (!ref.startsWith('refs/')) {
+    return ref;
+  }
+  const [, , ...values] = ref.split('/');
+  return values.join('/');
 };

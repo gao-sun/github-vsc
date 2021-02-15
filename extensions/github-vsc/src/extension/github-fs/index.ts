@@ -22,6 +22,7 @@ import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
 import { ControlPanelView } from '../control-panel-view';
 import { showDocumentIfNeeded } from './helpers';
+import { getShortenRef, replaceLocation } from '../utils/uri-decode';
 
 export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposable {
   static scheme = 'github-fs';
@@ -54,6 +55,15 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
         'github-vsc-control-panel',
         new ControlPanelView(extensionContext),
       ),
+      // change uri when document opening/closing
+      vsCodeWindow.onDidChangeActiveTextEditor((editor) => {
+        if (this.githubRef) {
+          const { owner, repo, ref } = this.githubRef;
+          replaceLocation(
+            `/${owner}/${repo}/tree/${getShortenRef(ref)}${editor?.document.uri.path ?? ''}`,
+          );
+        }
+      }),
     );
 
     if (location) {

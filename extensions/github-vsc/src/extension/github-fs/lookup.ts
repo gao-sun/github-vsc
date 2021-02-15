@@ -28,8 +28,6 @@ export const lookup = async (
       ? entryMap.get(segment)
       : [...entryMap.entries()].find(([name]) => name.toLowerCase() === segment.toLowerCase())?.[1];
 
-    console.log('??', child);
-
     if (!child) {
       throw FileSystemError.FileNotFound(uri);
     }
