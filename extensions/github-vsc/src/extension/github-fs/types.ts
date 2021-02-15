@@ -4,9 +4,13 @@ export type Entry = File | Directory;
 
 export type EntryMap = Map<string, Entry>;
 
-export type GitHubLocation = {
+export type GitHubRef = {
   owner: string;
   repo: string;
+  ref: string;
+};
+
+export type GitHubLocation = GitHubRef & {
   uri: Uri;
 };
 

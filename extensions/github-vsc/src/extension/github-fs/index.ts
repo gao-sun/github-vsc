@@ -16,39 +16,45 @@ import {
   FileType,
   Uri,
   workspace,
+  window as vsCodeWindow,
 } from 'vscode';
-import { Directory, Entry, GitHubLocation } from './types';
+import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
-import { updateAPIAuth } from './apis';
-import { getVSCodeData } from '../utils/global-state';
+import { ControlPanelView } from '../control-panel-view';
 
 export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposable {
   static scheme = 'github-fs';
+  static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
   // MARK: fs properties
-  root = new Directory(Uri.parse(`${GitHubFS.scheme}:/`), '', '');
-  owner: string;
-  repo: string;
+  root = new Directory(GitHubFS.rootUri, '', '');
+  githubRef?: GitHubRef;
 
   // MARK: fs helpers
-  private getLocation(uri: Uri): GitHubLocation {
-    return { owner: this.owner, repo: this.repo, uri };
+  private getLocation(uri: Uri): Optional<GitHubLocation> {
+    if (!this.githubRef) {
+      return;
+    }
+
+    return { ...this.githubRef, uri };
   }
 
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(extensionContext: ExtensionContext, owner: string, repo: string) {
-    this.owner = owner;
-    this.repo = repo;
+  constructor(extensionContext: ExtensionContext, githubRef?: GitHubRef) {
+    this.githubRef = githubRef;
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
         isReadonly: true,
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
+      vsCodeWindow.registerWebviewViewProvider(
+        'github-vsc-control-panel',
+        new ControlPanelView(extensionContext),
+      ),
     );
-    updateAPIAuth(getVSCodeData(extensionContext)?.pat);
   }
 
   dispose(): void {
@@ -63,19 +69,37 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
 
   async stat(uri: Uri): Promise<Entry> {
     console.log('stat', uri.path);
-    const [entry] = await lookup(this.root, this.getLocation(uri));
+
+    const location = this.getLocation(uri);
+    if (!location) {
+      return new Directory(uri, '', '');
+    }
+
+    const [entry] = await lookup(this.root, location);
     return entry;
   }
 
   async readDirectory(uri: Uri): Promise<[string, FileType][]> {
     console.log('readDirectory', uri.path);
-    const [, entries] = await lookupAsDirectory(this.root, this.getLocation(uri));
+
+    const location = this.getLocation(uri);
+    if (!location) {
+      return [];
+    }
+
+    const [, entries] = await lookupAsDirectory(this.root, location);
     return [...entries.entries()].map(([name, { type }]) => [name, type]);
   }
 
   async readFile(uri: Uri): Promise<Uint8Array> {
     console.log('readFile', uri.path);
-    const [, data] = await lookupAsFile(this.root, this.getLocation(uri));
+
+    const location = this.getLocation(uri);
+    if (!location) {
+      return Buffer.from('');
+    }
+
+    const [, data] = await lookupAsFile(this.root, location);
     return data;
   }
 
@@ -90,19 +114,22 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
   async provideFileSearchResults(
     query: FileSearchQuery,
     options: FileSearchOptions,
+    // TO-DO: cancel request if needed
     token: CancellationToken,
   ): Promise<Uri[]> {
     const segments = query.pattern.split('/');
+    const parentLocation = this.getLocation(
+      Uri.joinPath(this.root.uri, ...segments.slice(0, segments.length - 1)),
+    );
+    const currentLocation = this.getLocation(Uri.joinPath(this.root.uri, ...segments));
+
+    if (!parentLocation || !currentLocation) {
+      return [];
+    }
 
     const [[, parentEntries], [, currentEntries]] = await Promise.all([
-      lookupAsDirectorySilently(
-        this.root,
-        this.getLocation(Uri.joinPath(this.root.uri, ...segments.slice(0, segments.length - 1))),
-      ),
-      lookupAsDirectorySilently(
-        this.root,
-        this.getLocation(Uri.joinPath(this.root.uri, ...segments)),
-      ),
+      lookupAsDirectorySilently(this.root, parentLocation),
+      lookupAsDirectorySilently(this.root, currentLocation),
     ]);
 
     return [...parentEntries.entries(), ...currentEntries.entries()].map(([, { uri }]) => uri);

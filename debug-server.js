@@ -1,10 +1,12 @@
-var express = require('express');
-var serveStatic = require('serve-static');
+const path = require('path');
+const express = require('express');
+const serveStatic = require('serve-static');
 
-var staticBasePath = './app';
+const staticBasePath = './app';
 
-var app = express();
+const app = express();
 
-app.use(serveStatic(staticBasePath));
+app.use(serveStatic(staticBasePath, { fallthrough: true }));
+app.use((_, res) => res.sendFile(path.resolve(__dirname, './app/index.html')));
 app.listen(8080);
 console.log('Listening on port 8080');

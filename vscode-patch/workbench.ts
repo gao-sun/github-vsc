@@ -29,10 +29,29 @@ declare const window: any;
 		workspace = undefined;
 	}
 
-	if(workspace){
+	const locationCommands = [
+		{
+			id: 'github-vsc.location.fetch',
+			handler: () => window.location,
+		},
+		{
+			id: 'github-vsc.location.replace',
+			handler: (url: string) => {
+				window.history.replaceState(null, '', url);
+			},
+		},
+		{
+			id: 'github-vsc.location.push',
+			handler: (url: string) => {
+				window.history.pushState(null, '', url);
+			},
+		},
+	];
+
+	if (workspace) {
 		const workspaceProvider: IWorkspaceProvider = { workspace, open: async () => {} }
 		config = { ...config, workspaceProvider };
 	}
 
-	create(document.body, config);
+	create(document.body, { ...config, commands: [...(config.commands ?? []), ...locationCommands] });
 })();

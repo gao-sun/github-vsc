@@ -1,7 +1,7 @@
-import { Octokit } from '@octokit/rest';
+import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
-import { Directory, Entry, File, GitHubLocation } from './types';
+import { Directory, Entry, File, GitHubLocation, GitHubRef } from './types';
 
 let octokit = new Octokit();
 
@@ -18,12 +18,12 @@ const getPathType = (type: string): Optional<FileType> => {
   }
 };
 
-export const readTree = async ({ owner, repo, uri }: GitHubLocation): Promise<Entry[]> => {
+export const readTree = async ({ owner, repo, ref, uri }: GitHubLocation): Promise<Entry[]> => {
   try {
     const { data } = await octokit.git.getTree({
       owner,
       repo,
-      tree_sha: `master${uri.path.replace(/\//, ':')}`,
+      tree_sha: `${ref}${uri.path.replace(/\//, ':')}`,
     });
 
     return data.tree
@@ -66,3 +66,19 @@ export const readBlob = async (
 
 export const readEntries = async (location: GitHubLocation): Promise<Map<string, Entry>> =>
   new Map((await readTree(location)).map((entry) => [entry.name, entry]));
+
+export const getRepo = (
+  owner: string,
+  repo: string,
+): Promise<RestEndpointMethodTypes['repos']['get']['response']> =>
+  octokit.repos.get({ owner, repo });
+
+export const getMatchingRef = (
+  { owner, repo, ref }: GitHubRef,
+  type: 'branch' | 'tag',
+): Promise<RestEndpointMethodTypes['git']['listMatchingRefs']['response']> =>
+  octokit.git.listMatchingRefs({
+    owner,
+    repo,
+    ref: `${type === 'branch' ? 'heads' : 'tags'}/${ref}`,
+  });

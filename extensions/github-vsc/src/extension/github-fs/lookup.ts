@@ -4,11 +4,9 @@ import { Directory, Entry, EntryMap, File, GitHubLocation } from './types';
 
 export const lookup = async (
   root: Directory,
-  { owner, repo, uri }: GitHubLocation,
+  { owner, repo, ref, uri }: GitHubLocation,
 ): Promise<[File, Uint8Array] | [Directory, EntryMap]> => {
   let entry: Entry = root;
-
-  console.log('lookup', owner, repo, uri.path);
 
   for (const segment of uri.path.split('/')) {
     if (!segment) {
@@ -19,7 +17,7 @@ export const lookup = async (
       throw FileSystemError.FileNotFound(uri);
     }
 
-    const child = (await getEntries({ owner, repo, uri: entry.uri }, entry.sha)).get(segment);
+    const child = (await getEntries({ owner, repo, ref, uri: entry.uri }, entry.sha)).get(segment);
 
     if (!child) {
       throw FileSystemError.FileNotFound(uri);
@@ -28,15 +26,14 @@ export const lookup = async (
     entry = child;
   }
 
-  console.log('lookup entry', entry);
+  console.log('lookup result', owner, repo, ref, uri.path, entry);
 
   if (entry instanceof File) {
-    return [entry, await getData({ owner, repo, uri }, entry.sha)];
+    return [entry, await getData({ owner, repo, ref, uri }, entry.sha)];
   }
 
   if (entry instanceof Directory) {
-    console.log('is dir');
-    return [entry, await getEntries({ owner, repo, uri }, entry.sha)];
+    return [entry, await getEntries({ owner, repo, ref, uri }, entry.sha)];
   }
 
   throw FileSystemError.Unavailable(uri);

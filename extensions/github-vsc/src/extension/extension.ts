@@ -1,31 +1,28 @@
 import * as vscode from 'vscode';
-import { ControlPanelView } from './control-panel-view';
 import { GitHubFS } from './github-fs';
+import { updateAPIAuth } from './github-fs/apis';
 import init from './init';
 import { getVSCodeData } from './utils/global-state';
-
-declare const navigator: unknown;
+import { decodePathAsGitHubRef } from './utils/uri-decode';
 
 init();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  console.log('GitHub VSC activate with data', getVSCodeData(context));
+  const vsCodeData = getVSCodeData(context);
+  console.log('GitHub VSC activate with data', vsCodeData);
 
-  context.subscriptions.push(new GitHubFS(context, 'octokit', 'core.js'));
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      'github-vsc-control-panel',
-      new ControlPanelView(context),
-    ),
-  );
+  updateAPIAuth(vsCodeData?.pat);
 
-  // local debug
-  if (typeof navigator !== 'object') {
-    vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length, {
-      uri: vscode.Uri.parse(`${GitHubFS.scheme}:/`),
-      name: 'GitHubFS Sample',
-    });
-  }
+  const ref = await decodePathAsGitHubRef();
+  const name = (ref && `${ref.owner}/${ref.repo}:${ref.ref}`) ?? 'GitHub VSC';
+  console.log('decoded ref', ref);
+
+  vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length, {
+    uri: GitHubFS.rootUri,
+    name,
+  });
+
+  context.subscriptions.push(new GitHubFS(context, ref));
 
   console.log('GitHub VSC activated');
 }
