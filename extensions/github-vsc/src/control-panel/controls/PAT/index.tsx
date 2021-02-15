@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import classNames from 'classnames';
 import Spacer from '@/components/Spacer';
 import Button from '@/components/Button';
@@ -37,10 +37,10 @@ const PAT = ({ token }: Props) => {
     setIsEditing(true);
   };
 
-  const validate = () => {
+  const validate = (token = '') => {
     const action: WebViewAction = {
       action: WebviewActionEnum.ValidatePAT,
-      payload: inputToken,
+      payload: token,
     };
 
     setError('');
@@ -77,7 +77,7 @@ const PAT = ({ token }: Props) => {
             <Spacer />
             <Button onClick={edit}>{hasToken ? 'Update' : 'Setup'}</Button>
             {hasToken && (
-              <Button onClick={() => {}} type="secondary">
+              <Button onClick={() => validate()} type="secondary">
                 Remove
               </Button>
             )}
@@ -92,7 +92,7 @@ const PAT = ({ token }: Props) => {
               onChange={({ target: { value } }) => setInputToken(value)}
               autoFocus
             />
-            <Button disabled={isValidating} onClick={validate}>
+            <Button disabled={isValidating} onClick={() => validate(inputToken)}>
               OK
             </Button>
             <Button type="secondary" disabled={isValidating} onClick={() => setIsEditing(false)}>

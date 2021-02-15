@@ -18,19 +18,15 @@ export class ControlPanelView implements WebviewViewProvider {
     const stylesPath = Uri.joinPath(extensionUri, 'dist', 'control-panel.css');
     const scriptUri = webview.asWebviewUri(scriptPath);
     const stylesUri = webview.asWebviewUri(stylesPath);
-    const data: VSCodeData = {
-      pat: '123',
-    };
 
     webview.onDidReceiveMessage(
-      (action: WebviewAction) => actionHandler(webview, action),
+      (action: WebviewAction) => actionHandler(this._extensionContext, webview, action),
       undefined,
       this._extensionContext.subscriptions,
     );
     webview.options = { enableScripts: true };
     webview.html = view
       .replace('$SCRIPT_URI$', scriptUri.toString())
-      .replace('$STYLES_URI$', stylesUri.toString())
-      .replace('$VSCODE_DATA$', JSON.stringify(data));
+      .replace('$STYLES_URI$', stylesUri.toString());
   }
 }

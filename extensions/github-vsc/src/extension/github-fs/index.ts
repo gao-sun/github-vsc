@@ -7,6 +7,7 @@ import {
   CancellationToken,
   Disposable,
   EventEmitter,
+  ExtensionContext,
   FileChangeEvent,
   FileSearchOptions,
   FileSearchProvider,
@@ -18,6 +19,8 @@ import {
 } from 'vscode';
 import { Directory, Entry, GitHubLocation } from './types';
 import { lookup, lookupAsDirectory, lookupAsFile } from './lookup';
+import { updateAPIAuth } from './apis';
+import { getVSCodeData } from '../utils/global-state';
 
 export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposable {
   static scheme = 'github-fs';
@@ -35,7 +38,7 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(owner: string, repo: string) {
+  constructor(extensionContext: ExtensionContext, owner: string, repo: string) {
     this.owner = owner;
     this.repo = repo;
     this.disposable = Disposable.from(
@@ -45,6 +48,7 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
     );
+    updateAPIAuth(getVSCodeData(extensionContext)?.pat);
   }
 
   dispose(): void {

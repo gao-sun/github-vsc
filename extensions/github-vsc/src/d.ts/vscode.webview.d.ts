@@ -7,5 +7,3 @@ declare const acquireVsCodeApi: <T = unknown>() => {
 declare type VSCodeData = {
   pat?: string;
 };
-
-declare let vsCodeData: VSCodeData;

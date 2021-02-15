@@ -2,13 +2,16 @@ import * as vscode from 'vscode';
 import { ControlPanelView } from './control-panel-view';
 import { GitHubFS } from './github-fs';
 import init from './init';
+import { getVSCodeData } from './utils/global-state';
 
 declare const navigator: unknown;
 
 init();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  context.subscriptions.push(new GitHubFS('octokit', 'core.js'));
+  console.log('GitHub VSC activate with data', getVSCodeData(context));
+
+  context.subscriptions.push(new GitHubFS(context, 'octokit', 'core.js'));
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       'github-vsc-control-panel',

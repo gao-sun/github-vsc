@@ -1,13 +1,25 @@
 import { Octokit } from '@octokit/rest';
 import { RequestError } from '@octokit/request-error';
 import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
-import { Webview } from 'vscode';
+import { ExtensionContext, Webview } from 'vscode';
+import { getVSCodeData, setPartialVSCodeData } from '../utils/global-state';
+import { updateAPIAuth } from '../github-fs/apis';
 
 export const postAction = (webview: Webview, action: WebviewAction): Thenable<boolean> =>
   webview.postMessage(action);
 
-export const updateVSCodeData = (webview: Webview, data: VSCodeData): Thenable<boolean> =>
+export const postUpdateData = async (webview: Webview, data?: VSCodeData): Promise<boolean> =>
   postAction(webview, { action: WebviewActionEnum.UpdateData, payload: data });
+
+export const updatePAT = async (
+  context: ExtensionContext,
+  webview: Webview,
+  pat: string,
+): Promise<boolean> => {
+  const updated = await setPartialVSCodeData(context, { pat });
+  updateAPIAuth(pat);
+  return postUpdateData(webview, updated);
+};
 
 const deliverValidatePATResult = (
   webview: Webview,
@@ -23,21 +35,34 @@ const deliverValidatePATResult = (
   });
 
 export const actionHandler = async (
+  context: ExtensionContext,
   webview: Webview,
   { action, payload }: WebviewAction,
 ): Promise<void> => {
   if (action === WebviewActionEnum.ValidatePAT) {
-    const octokit = new Octokit({ auth: String(payload) });
+    const token = String(payload);
+
+    if (!payload || !token) {
+      deliverValidatePATResult(webview, true);
+      updatePAT(context, webview, token);
+    }
+
+    const octokit = new Octokit({ auth: token });
+
     try {
       const { status } = await octokit.request('/');
       if (status >= 200 && status < 300) {
         deliverValidatePATResult(webview, true);
-        updateVSCodeData(webview, { pat: String(payload) });
+        updatePAT(context, webview, token);
       } else {
         deliverValidatePATResult(webview, false);
       }
     } catch (error) {
       deliverValidatePATResult(webview, false, (error as RequestError).message);
     }
+  }
+
+  if (action === WebviewActionEnum.RequestData) {
+    postUpdateData(webview, getVSCodeData(context));
   }
 };

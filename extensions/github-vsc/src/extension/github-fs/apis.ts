@@ -5,8 +5,8 @@ import { Directory, Entry, File, GitHubLocation } from './types';
 
 let octokit = new Octokit();
 
-export const updateOctokit = (newKit: Octokit): void => {
-  octokit = newKit;
+export const updateAPIAuth = (pat?: string): void => {
+  octokit = new Octokit({ auth: pat });
 };
 
 const getPathType = (type: string): Optional<FileType> => {
