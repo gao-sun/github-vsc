@@ -2,10 +2,16 @@ import { FileSystemError } from 'vscode';
 import { getData, getEntries } from './getter';
 import { Directory, Entry, EntryMap, File, GitHubLocation } from './types';
 
+export type LookupOptions = {
+  caseInsensitive?: boolean;
+};
+
 export const lookup = async (
   root: Directory,
   { owner, repo, ref, uri }: GitHubLocation,
+  options?: LookupOptions,
 ): Promise<[File, Uint8Array] | [Directory, EntryMap]> => {
+  const { caseInsensitive }: LookupOptions = { caseInsensitive: false, ...options };
   let entry: Entry = root;
 
   for (const segment of uri.path.split('/')) {
@@ -17,7 +23,12 @@ export const lookup = async (
       throw FileSystemError.FileNotFound(uri);
     }
 
-    const child = (await getEntries({ owner, repo, ref, uri: entry.uri }, entry.sha)).get(segment);
+    const entryMap = await getEntries({ owner, repo, ref, uri: entry.uri }, entry.sha);
+    const child = !caseInsensitive
+      ? entryMap.get(segment)
+      : [...entryMap.entries()].find(([name]) => name.toLowerCase() === segment.toLowerCase())?.[1];
+
+    console.log('??', child);
 
     if (!child) {
       throw FileSystemError.FileNotFound(uri);
@@ -42,8 +53,9 @@ export const lookup = async (
 export const lookupAsDirectory = async (
   root: Directory,
   location: GitHubLocation,
+  options?: LookupOptions,
 ): Promise<[Directory, EntryMap]> => {
-  const [directory, entries] = await lookup(root, location);
+  const [directory, entries] = await lookup(root, location, options);
 
   if (!(directory instanceof Directory)) {
     throw FileSystemError.FileNotADirectory(location.uri);
@@ -55,9 +67,10 @@ export const lookupAsDirectory = async (
 export const lookupAsDirectorySilently = async (
   root: Directory,
   location: GitHubLocation,
+  options?: LookupOptions,
 ): Promise<[Optional<Directory>, EntryMap]> => {
   try {
-    const [directory, entryMap] = await lookupAsDirectory(root, location);
+    const [directory, entryMap] = await lookupAsDirectory(root, location, options);
     return [directory, entryMap];
   } catch {
     // ignored
@@ -68,8 +81,9 @@ export const lookupAsDirectorySilently = async (
 export const lookupAsFile = async (
   root: Directory,
   location: GitHubLocation,
+  options?: LookupOptions,
 ): Promise<[File, Uint8Array]> => {
-  const [file, data] = await lookup(root, location);
+  const [file, data] = await lookup(root, location, options);
 
   if (!(file instanceof File)) {
     throw FileSystemError.FileIsADirectory(location.uri);

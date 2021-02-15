@@ -134,6 +134,7 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
       return [];
     }
 
+    // TO-DO: investigate how to implement case insensitive search
     const [[, parentEntries], [, currentEntries]] = await Promise.all([
       lookupAsDirectorySilently(this.root, parentLocation),
       lookupAsDirectorySilently(this.root, currentLocation),
