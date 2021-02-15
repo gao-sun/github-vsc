@@ -18,7 +18,7 @@ import {
   workspace,
 } from 'vscode';
 import { Directory, Entry, GitHubLocation } from './types';
-import { lookup, lookupAsDirectory, lookupAsFile } from './lookup';
+import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
 import { updateAPIAuth } from './apis';
 import { getVSCodeData } from '../utils/global-state';
 
@@ -92,9 +92,20 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
     options: FileSearchOptions,
     token: CancellationToken,
   ): Promise<Uri[]> {
-    return [];
-    const [, entries] = await lookupAsDirectory(this.root, this.getLocation(this.root.uri));
-    return [...entries.entries()].map(([, { uri }]) => uri);
+    const segments = query.pattern.split('/');
+
+    const [[, parentEntries], [, currentEntries]] = await Promise.all([
+      lookupAsDirectorySilently(
+        this.root,
+        this.getLocation(Uri.joinPath(this.root.uri, ...segments.slice(0, segments.length - 1))),
+      ),
+      lookupAsDirectorySilently(
+        this.root,
+        this.getLocation(Uri.joinPath(this.root.uri, ...segments)),
+      ),
+    ]);
+
+    return [...parentEntries.entries(), ...currentEntries.entries()].map(([, { uri }]) => uri);
   }
 
   // MARK: file events

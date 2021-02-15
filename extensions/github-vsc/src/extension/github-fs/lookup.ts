@@ -55,6 +55,19 @@ export const lookupAsDirectory = async (
   return [directory, entries as EntryMap];
 };
 
+export const lookupAsDirectorySilently = async (
+  root: Directory,
+  location: GitHubLocation,
+): Promise<[Optional<Directory>, EntryMap]> => {
+  try {
+    const [directory, entryMap] = await lookupAsDirectory(root, location);
+    return [directory, entryMap];
+  } catch {
+    // ignored
+  }
+  return [, new Map()];
+};
+
 export const lookupAsFile = async (
   root: Directory,
   location: GitHubLocation,
