@@ -1,9 +1,14 @@
 import 'regenerator-runtime/runtime';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PAT from './PAT';
 
 const App = () => {
-  return <div>hello, world.</div>;
+  return (
+    <div>
+      <PAT></PAT>
+    </div>
+  );
 };
 
 ReactDOM.render(<App />, document.querySelector('#root'));

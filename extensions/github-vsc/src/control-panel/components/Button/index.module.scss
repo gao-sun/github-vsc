@@ -1,0 +1,26 @@
+.button {
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  padding: 2px 8px;
+  outline: none;
+
+  &:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  &:active,
+  &:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  &.secondary {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+
+    &:hover {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+  }
+}

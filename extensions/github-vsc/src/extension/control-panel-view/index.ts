@@ -21,11 +21,13 @@ export class ControlPanelView implements WebviewViewProvider {
     token: CancellationToken,
   ): void {
     const scriptPath = Uri.joinPath(this._extensionUri, 'dist', 'control-panel.js');
+    const stylesPath = Uri.joinPath(this._extensionUri, 'dist', 'control-panel.css');
     const scriptUri = webviewView.webview.asWebviewUri(scriptPath);
-
-    console.log('???', scriptPath);
+    const stylesUri = webviewView.webview.asWebviewUri(stylesPath);
 
     webviewView.webview.options = { enableScripts: true };
-    webviewView.webview.html = view.replace('$SCRIPT_URI$', scriptUri.toString());
+    webviewView.webview.html = view
+      .replace('$SCRIPT_URI$', scriptUri.toString())
+      .replace('$STYLES_URI$', stylesUri.toString());
   }
 }

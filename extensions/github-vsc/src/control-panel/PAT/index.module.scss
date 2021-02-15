@@ -1,0 +1,39 @@
+.patControl {
+  display: flex;
+  align-items: center;
+  min-height: 25px;
+
+  .dot {
+    border-radius: 50%;
+    width: 6px;
+    height: 6px;
+    background: var(--vscode-descriptionForeground);
+    margin-right: 8px;
+  }
+
+  button + button {
+    margin-left: 4px;
+  }
+
+  input {
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    outline: none;
+    flex-grow: 1;
+    margin-right: 12px;
+    padding: 4px 8px;
+  }
+
+  &.enabled {
+    .dot {
+      background: var(--vscode-charts-green);
+    }
+  }
+}
+
+.description {
+  color: var(--vscode-descriptionForeground);
+  margin-top: 12px;
+}
