@@ -1,12 +1,22 @@
 import 'regenerator-runtime/runtime';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import PAT from './PAT';
+import PAT from './controls/PAT';
+import { WebviewActionEnum } from '@src/types/WebviewAction';
+import useListenMessage from './hooks/useListenMessage';
 
 const App = () => {
+  const [data, setData] = useState(vsCodeData);
+
+  useListenMessage(({ action, payload }) => {
+    if (action === WebviewActionEnum.UpdateData) {
+      setData(payload);
+    }
+  });
+
   return (
     <div>
-      <PAT></PAT>
+      <PAT token={data.pat}></PAT>
     </div>
   );
 };

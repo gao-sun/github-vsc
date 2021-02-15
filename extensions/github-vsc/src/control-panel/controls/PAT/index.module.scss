@@ -24,6 +24,10 @@
     flex-grow: 1;
     margin-right: 12px;
     padding: 4px 8px;
+
+    &:disabled {
+      opacity: 0.8;
+    }
   }
 
   &.enabled {

@@ -6,7 +6,11 @@
   padding: 2px 8px;
   outline: none;
 
-  &:hover {
+  &:disabled {
+    opacity: 0.8;
+  }
+
+  &:not(:disabled):hover {
     background: var(--vscode-button-hoverBackground);
   }
 
@@ -19,7 +23,7 @@
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
 
-    &:hover {
+    &:not(:disabled):hover {
       background: var(--vscode-button-secondaryHoverBackground);
     }
   }

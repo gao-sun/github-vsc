@@ -31,6 +31,7 @@ const getConfig = (_, { mode }) => {
       extensions: ['.ts', '.js', '.tsx'],
       alias: {
         '@': path.resolve(__dirname, 'src/control-panel'),
+        '@src': path.resolve(__dirname, 'src'),
       },
     },
     module: {

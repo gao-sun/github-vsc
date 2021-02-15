@@ -6,13 +6,15 @@ export type ButtonType = 'primary' | 'secondary';
 
 export type Props = {
   children: ReactNode;
+  disabled?: boolean;
   type?: ButtonType;
   onClick: () => void;
 };
 
-const Button = ({ children, type = 'primary', onClick }: Props) => {
+const Button = ({ children, disabled, type = 'primary', onClick }: Props) => {
   return (
     <button
+      disabled={disabled}
       className={classNames(styles.button, type === 'secondary' && styles.secondary)}
       onClick={onClick}
     >

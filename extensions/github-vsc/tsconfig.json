@@ -16,15 +16,13 @@
 			{ "name": "typescript-plugin-css-modules" }
 		],
 		"paths": {
-			"@/*": ["./src/control-panel/*"]
-		}
+			"@/*": ["./src/control-panel/*"],
+			"@src/*": ["./src/*"]
+		},
 		/* Additional Checks */
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
 		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
 	},
-	"exclude": [
-		"node_modules",
-		".vscode-test"
-	]
+	"include": ["src"],
 }

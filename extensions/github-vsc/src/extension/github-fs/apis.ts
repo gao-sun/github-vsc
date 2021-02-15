@@ -3,7 +3,11 @@ import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
 import { Directory, Entry, File, GitHubLocation } from './types';
 
-const octokit = new Octokit({ auth: '' });
+let octokit = new Octokit();
+
+export const updateOctokit = (newKit: Octokit): void => {
+  octokit = newKit;
+};
 
 const getPathType = (type: string): Optional<FileType> => {
   if (type === 'blob') {

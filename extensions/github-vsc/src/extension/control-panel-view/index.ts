@@ -1,33 +1,36 @@
-import {
-  CancellationToken,
-  Uri,
-  WebviewView,
-  WebviewViewProvider,
-  WebviewViewResolveContext,
-} from 'vscode';
+import { ExtensionContext, Uri, WebviewView, WebviewViewProvider } from 'vscode';
+import WebviewAction from '@src/types/WebviewAction';
 
 import view from './view.html';
+import { actionHandler } from './action-handler';
 
 export class ControlPanelView implements WebviewViewProvider {
-  private readonly _extensionUri: Uri;
+  private readonly _extensionContext: ExtensionContext;
 
-  constructor(extensionUri: Uri) {
-    this._extensionUri = extensionUri;
+  constructor(extensionContext: ExtensionContext) {
+    this._extensionContext = extensionContext;
   }
 
-  resolveWebviewView(
-    webviewView: WebviewView,
-    context: WebviewViewResolveContext,
-    token: CancellationToken,
-  ): void {
-    const scriptPath = Uri.joinPath(this._extensionUri, 'dist', 'control-panel.js');
-    const stylesPath = Uri.joinPath(this._extensionUri, 'dist', 'control-panel.css');
-    const scriptUri = webviewView.webview.asWebviewUri(scriptPath);
-    const stylesUri = webviewView.webview.asWebviewUri(stylesPath);
+  resolveWebviewView(webviewView: WebviewView): void {
+    const extensionUri = this._extensionContext.extensionUri;
+    const webview = webviewView.webview;
+    const scriptPath = Uri.joinPath(extensionUri, 'dist', 'control-panel.js');
+    const stylesPath = Uri.joinPath(extensionUri, 'dist', 'control-panel.css');
+    const scriptUri = webview.asWebviewUri(scriptPath);
+    const stylesUri = webview.asWebviewUri(stylesPath);
+    const data: VSCodeData = {
+      pat: '123',
+    };
 
-    webviewView.webview.options = { enableScripts: true };
-    webviewView.webview.html = view
+    webview.onDidReceiveMessage(
+      (action: WebviewAction) => actionHandler(webview, action),
+      undefined,
+      this._extensionContext.subscriptions,
+    );
+    webview.options = { enableScripts: true };
+    webview.html = view
       .replace('$SCRIPT_URI$', scriptUri.toString())
-      .replace('$STYLES_URI$', stylesUri.toString());
+      .replace('$STYLES_URI$', stylesUri.toString())
+      .replace('$VSCODE_DATA$', JSON.stringify(data));
   }
 }
