@@ -23,6 +23,7 @@ import {
   TextSearchOptions,
   TextSearchQuery,
   TextSearchResult,
+  FileChangeType,
 } from 'vscode';
 import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
@@ -37,6 +38,7 @@ import {
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
 import { searchCode } from './apis';
 import { reopenFolder } from '../utils/workspace';
+import { writeFile } from './write-file';
 
 export class GitHubFS
   implements FileSystemProvider, FileSearchProvider, TextSearchProvider, Disposable {
@@ -114,7 +116,6 @@ export class GitHubFS
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
-        isReadonly: true,
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
       workspace.registerTextSearchProvider(GitHubFS.scheme, this),
@@ -176,9 +177,23 @@ export class GitHubFS
     return data;
   }
 
+  writeFile(uri: Uri, content: Uint8Array): void {
+    const location = this.getLocation(uri);
+
+    if (!location) {
+      return;
+    }
+
+    try {
+      writeFile(this.root, location, content);
+      this._fireSoon({ type: FileChangeType.Changed, uri });
+    } catch {
+      vsCodeWindow.showWarningMessage('Unsupported operation.');
+    }
+  }
+
   // to implement
   createDirectory(): void {}
-  writeFile(): void {}
   delete(): void {}
   rename(): void {}
   copy(): void {}
@@ -246,5 +261,20 @@ export class GitHubFS
 
   // MARK: file events
   private _emitter = new EventEmitter<FileChangeEvent[]>();
+  private _bufferedEvents: FileChangeEvent[] = [];
   readonly onDidChangeFile = this._emitter.event;
+  private _fireSoonHandle: null | ReturnType<typeof setTimeout> = null;
+
+  private _fireSoon(...events: FileChangeEvent[]): void {
+    this._bufferedEvents.push(...events);
+
+    if (this._fireSoonHandle) {
+      clearTimeout(this._fireSoonHandle);
+    }
+
+    this._fireSoonHandle = setTimeout(() => {
+      this._emitter.fire(this._bufferedEvents);
+      this._bufferedEvents.length = 0;
+    }, 5);
+  }
 }
