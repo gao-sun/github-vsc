@@ -2,16 +2,18 @@ import { ExtensionContext, Uri, Webview, WebviewView, WebviewViewProvider } from
 import WebviewAction from '@src/types/WebviewAction';
 
 import view from './view.html';
-import { actionHandler } from './action-handler';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
-  private readonly _onDataUpdated: () => void | Promise<void>;
+  private readonly _actionHanlder: (action: WebviewAction) => void | Promise<void>;
   private webview?: Webview;
 
-  constructor(extensionContext: ExtensionContext, onDataUpdated: () => void | Promise<void>) {
+  constructor(
+    extensionContext: ExtensionContext,
+    actionHanlder: (action: WebviewAction) => void | Promise<void>,
+  ) {
     this._extensionContext = extensionContext;
-    this._onDataUpdated = onDataUpdated;
+    this._actionHanlder = actionHanlder;
   }
 
   resolveWebviewView(webviewView: WebviewView): void {
@@ -24,8 +26,7 @@ export class ControlPanelView implements WebviewViewProvider {
 
     this.webview = webview;
     webview.onDidReceiveMessage(
-      (action: WebviewAction) =>
-        actionHandler(this._extensionContext, webview, action, this._onDataUpdated),
+      this._actionHanlder,
       undefined,
       this._extensionContext.subscriptions,
     );

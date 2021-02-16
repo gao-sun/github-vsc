@@ -56,6 +56,10 @@ export class GHFSSourceControl implements QuickDiffProvider, Disposable {
     this.updateInputBoxVisibility();
   }
 
+  getChangedFiles(): Uri[] {
+    return this.changedGroup.resourceStates.map(({ resourceUri }) => resourceUri);
+  }
+
   // MARK: QuickDiffProvider implementation
   provideOriginalResource?(uri: Uri, token: CancellationToken): Uri {
     return uri.with({ query: `${LOOKUP_ORIGINAL_KEY}=true` });

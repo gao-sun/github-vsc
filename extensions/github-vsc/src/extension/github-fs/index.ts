@@ -28,7 +28,7 @@ import {
   FileDecoration,
   ThemeColor,
 } from 'vscode';
-import { Directory, Entry, GitHubLocation } from './types';
+import { Directory, Entry, GitFileMode, GitHubLocation } from './types';
 import {
   lookup,
   lookupAsDirectory,
@@ -42,16 +42,18 @@ import {
   getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
 } from './helpers';
-import { getShortenRef, replaceLocation } from '../utils/uri-decode';
-import { getPermission, searchCode } from '../apis';
+import { replaceLocation } from '../utils/uri-decode';
+import { createBlob, createGitRef, getPermission, getRefSilently, searchCode } from '../apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
 import { GitHubRef } from '@src/types/foundation';
-import { updateRepoData } from '../control-panel-view/action-handler';
+import { postUpdateData, updateRepoData, validatePAT } from './action-handler';
 import { getVSCodeData } from '../utils/global-state';
 import { showGlobalSearchLimitationInfo, showGlobalSearchAPIInfo } from './message';
+import WebviewAction, { ProposeChangesPayload, WebviewActionEnum } from '@src/types/WebviewAction';
+import { buildFullRef, getShortenRef } from '../utils/git-ref';
 
 export class GitHubFS
   implements
@@ -65,7 +67,7 @@ export class GitHubFS
 
   // MARK: fs properties
   private ghfsSCM: GHFSSourceControl;
-  private root = new Directory(GitHubFS.rootUri, '', '');
+  private root = new Directory(GitHubFS.rootUri, '', '', GitFileMode.Tree);
   private githubRef?: GitHubRef;
   private controlPanelView: ControlPanelView;
   readonly extensionContext: ExtensionContext;
@@ -122,7 +124,7 @@ export class GitHubFS
 
   private switchTo(location?: GitHubLocation) {
     const description = getGitHubRefDescription(location);
-    this.root = new Directory(GitHubFS.rootUri, description, description);
+    this.root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
 
     if (!location) {
       this.githubRef = undefined;
@@ -149,6 +151,57 @@ export class GitHubFS
     }
   }
 
+  // MARK: webview action handler
+  private onDataUpdated() {
+    this.updateRepoData();
+  }
+
+  private async actionHandler({ action, payload }: WebviewAction) {
+    const webview = this.controlPanelView.getWebview();
+    const context = this.extensionContext;
+
+    if (action === WebviewActionEnum.ValidatePAT) {
+      validatePAT(webview, context, payload, this.onDataUpdated);
+    }
+
+    if (action === WebviewActionEnum.ProposeChanges) {
+      if (!this.githubRef) {
+        return;
+      }
+
+      const githubRef = this.githubRef;
+      const { commitMessage, branchName } = payload as ProposeChangesPayload;
+      const branchFullRef = buildFullRef(branchName, 'branch');
+      const { owner, repo, ref } = githubRef;
+      const [matchedRef, matchedBranch] = await Promise.all([
+        // use get ref here
+        getRefSilently({ owner, repo, ref }, 'branch'),
+        getRefSilently({ owner, repo, ref: branchName }, 'branch'),
+      ]);
+
+      if (!matchedRef) {
+        return;
+      }
+
+      if (matchedBranch?.ref === branchFullRef) {
+        return;
+      }
+
+      const { data } = await createGitRef(owner, repo, branchFullRef, matchedRef.object.sha);
+      const blobs = await Promise.all(
+        this.ghfsSCM.getChangedFiles().map((uri) => lookupAsFile(this.root, { ...githubRef, uri })),
+      );
+      const uploadResults = await Promise.all(
+        blobs.map(([, blob]) => createBlob(owner, repo, blob)),
+      );
+      console.log('???', uploadResults);
+    }
+
+    if (action === WebviewActionEnum.RequestData) {
+      postUpdateData(webview, getVSCodeData(context));
+    }
+  }
+
   // MARK: disposable
   private readonly disposable: Disposable;
 
@@ -160,7 +213,9 @@ export class GitHubFS
     this.extensionContext = extensionContext;
     this.defaultBranch = defaultBranch;
     this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
-    this.controlPanelView = new ControlPanelView(extensionContext, () => this.updateRepoData());
+    this.controlPanelView = new ControlPanelView(extensionContext, (action) =>
+      this.actionHandler(action),
+    );
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
@@ -210,7 +265,7 @@ export class GitHubFS
 
     const location = this.getLocation(uri);
     if (!location) {
-      return new Directory(uri, '', '');
+      return new Directory(uri, '', '', GitFileMode.Tree);
     }
 
     const [entry] = await lookup(this.root, location);

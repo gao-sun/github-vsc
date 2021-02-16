@@ -7,6 +7,8 @@ import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 
 import styles from './index.module.scss';
+import { vscodeApi } from '@/utils/vscode';
+import WebViewAction, { ProposeChangesPayload, WebviewActionEnum } from '@src/types/WebviewAction';
 
 export type Props = {
   userContext?: UserContext;
@@ -22,6 +24,19 @@ const SourceControl = ({ repoData, userContext }: Props) => {
 
   const hasWritePermission =
     !!repoData?.permission && !['read', 'triage'].includes(repoData.permission.toLowerCase());
+
+  const propose = () => {
+    const payload: ProposeChangesPayload = {
+      commitMessage: '',
+      branchName,
+    };
+    const action: WebViewAction = {
+      action: WebviewActionEnum.ProposeChanges,
+      payload: payload,
+    };
+
+    vscodeApi.postMessage(action);
+  };
 
   if (!repoData?.ref) {
     return null;
@@ -47,7 +62,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
           value={branchName}
           onChange={({ target: { value } }) => setBranchName(value)}
         />
-        <Button type="secondary" onClick={() => {}}>
+        <Button type="secondary" onClick={propose}>
           Propose Changes
         </Button>
       </div>

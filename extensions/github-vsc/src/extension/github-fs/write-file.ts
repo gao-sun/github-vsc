@@ -4,7 +4,15 @@ import { dirtyData } from './store';
 import { Directory, Entry, File, GitHubLocation } from './types';
 
 const updatedFile = (original: File, newSize: number): File =>
-  new File(original.uri, original.name, original.sha, newSize, original.ctime, Date.now());
+  new File(
+    original.uri,
+    original.name,
+    original.sha,
+    original.mode,
+    newSize,
+    original.ctime,
+    Date.now(),
+  );
 
 export const writeFile = async (
   root: Directory,

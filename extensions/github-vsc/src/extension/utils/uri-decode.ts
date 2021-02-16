@@ -2,6 +2,7 @@ import { commands, Uri, window } from 'vscode';
 import { GitHubFS } from '../github-fs';
 import { getMatchingRef, getRepo } from '../apis';
 import { GitHubLocation } from '../github-fs/types';
+import { getShortenRef } from './git-ref';
 
 export const getLocation = async (): Promise<Location> => {
   const location = await commands.executeCommand('github-vsc.location.fetch');
@@ -91,12 +92,4 @@ export const decodePathAsGitHubLocation = async (
 
   window.showWarningMessage(`Ref matching failed`);
   return [undefined, undefined];
-};
-
-export const getShortenRef = (ref: string): string => {
-  if (!ref.startsWith('refs/')) {
-    return ref;
-  }
-  const [, , ...values] = ref.split('/');
-  return values.join('/');
 };
