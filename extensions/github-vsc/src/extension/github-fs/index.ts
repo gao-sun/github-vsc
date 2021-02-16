@@ -21,7 +21,7 @@ import {
 import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
 import { ControlPanelView } from '../control-panel-view';
-import { showDocumentIfNeeded } from './helpers';
+import { showDocumentOrRevealFolderIfNeeded } from './helpers';
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
 
 export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposable {
@@ -69,7 +69,7 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
     if (location) {
       const { uri: _, ...githubRef } = location;
       this.githubRef = githubRef;
-      showDocumentIfNeeded(this.root, location);
+      showDocumentOrRevealFolderIfNeeded(this.root, location);
     }
   }
 
