@@ -28,29 +28,30 @@ import {
   FileDecoration,
   ThemeColor,
 } from 'vscode';
-import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
+import { Directory, Entry, GitHubLocation } from './types';
 import {
   lookup,
   lookupAsDirectory,
   lookupAsDirectorySilently,
   lookupAsFile,
   lookupIfFileDirtyWithoutFetching,
-  LOOKUP_ORIGINAL_KEY,
 } from './lookup';
 import { ControlPanelView } from '../control-panel-view';
 import {
   convertGitHubSearchResponseToSearchResult,
   getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
-  showGlobalSearchAPIInfo,
-  showGlobalSearchLimitationInfo,
 } from './helpers';
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
-import { searchCode } from './apis';
+import { getPermission, searchCode } from '../apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
+import { GitHubRef } from '@src/types/foundation';
+import { updateRepoData } from '../control-panel-view/action-handler';
+import { getVSCodeData } from '../utils/global-state';
+import { showGlobalSearchLimitationInfo, showGlobalSearchAPIInfo } from './message';
 
 export class GitHubFS
   implements
@@ -66,6 +67,7 @@ export class GitHubFS
   private ghfsSCM: GHFSSourceControl;
   private root = new Directory(GitHubFS.rootUri, '', '');
   private githubRef?: GitHubRef;
+  private controlPanelView: ControlPanelView;
   readonly extensionContext: ExtensionContext;
   readonly defaultBranch?: string;
 
@@ -94,6 +96,30 @@ export class GitHubFS
     this.updateBroswerUrl();
   }
 
+  private async updateRepoData() {
+    const vsCodeData = await getVSCodeData(this.extensionContext);
+
+    if (!this.githubRef || !vsCodeData?.userContext) {
+      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), undefined);
+      return;
+    }
+
+    const { owner, repo } = this.githubRef;
+
+    try {
+      const { data } = await getPermission(owner, repo, vsCodeData.userContext);
+
+      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
+        ref: this.githubRef,
+        permission: data.permission,
+      });
+    } catch {
+      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
+        ref: this.githubRef,
+      });
+    }
+  }
+
   private switchTo(location?: GitHubLocation) {
     const description = getGitHubRefDescription(location);
     this.root = new Directory(GitHubFS.rootUri, description, description);
@@ -101,12 +127,14 @@ export class GitHubFS
     if (!location) {
       this.githubRef = undefined;
       this.reopen(description);
+      this.updateRepoData();
       return;
     }
 
     const { uri: _, ...githubRef } = location;
     this.githubRef = githubRef;
     this.reopen(description);
+    this.updateRepoData();
     showDocumentOrRevealFolderIfNeeded(this.root, location);
   }
 
@@ -132,16 +160,14 @@ export class GitHubFS
     this.extensionContext = extensionContext;
     this.defaultBranch = defaultBranch;
     this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
+    this.controlPanelView = new ControlPanelView(extensionContext, () => this.updateRepoData());
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
       workspace.registerTextSearchProvider(GitHubFS.scheme, this),
-      vsCodeWindow.registerWebviewViewProvider(
-        'github-vsc-control-panel',
-        new ControlPanelView(extensionContext),
-      ),
+      vsCodeWindow.registerWebviewViewProvider('github-vsc-control-panel', this.controlPanelView),
       // change uri when document opening/closing
       vsCodeWindow.onDidChangeActiveTextEditor(() => this.updateBroswerUrl()),
       vsCodeWindow.registerFileDecorationProvider(this),

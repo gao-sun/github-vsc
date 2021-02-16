@@ -1,14 +1,9 @@
+import { GitHubRef } from '@src/types/foundation';
 import { FileStat, FileType, Uri } from 'vscode';
 
 export type Entry = File | Directory;
 
 export type EntryMap = Map<string, Entry>;
-
-export type GitHubRef = {
-  owner: string;
-  repo: string;
-  ref: string;
-};
 
 export type GitHubLocation = GitHubRef & {
   uri: Uri;

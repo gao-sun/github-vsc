@@ -3,7 +3,3 @@ declare const acquireVsCodeApi: <T = unknown>() => {
   setState: (data: T) => void;
   postMessage: (msg: unknown) => void;
 };
-
-declare type VSCodeData = {
-  pat?: string;
-};

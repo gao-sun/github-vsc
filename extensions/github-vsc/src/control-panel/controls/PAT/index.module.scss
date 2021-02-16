@@ -15,6 +15,10 @@
     margin-left: 4px;
   }
 
+  input {
+    margin-right: 12px;
+  }
+
   &.enabled {
     .dot {
       background: var(--vscode-charts-green);

@@ -85,6 +85,7 @@
   "dependencies": {
     "@octokit/rest": "^18.1.1",
     "classnames": "^2.2.6",
+    "dayjs": "^1.10.4",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "regenerator-runtime": "^0.13.7"

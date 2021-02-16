@@ -6,6 +6,7 @@ import { vscodeApi } from '@/utils/vscode';
 import PAT from './PAT';
 import SourceControl from './SourceControl';
 import styles from './index.module.scss';
+import { VSCodeData } from '@src/types/foundation';
 
 const App = () => {
   const [data, setData] = useState<VSCodeData>();
@@ -24,8 +25,8 @@ const App = () => {
 
   return (
     <div className={styles.app}>
-      <PAT token={data?.pat}></PAT>
-      <SourceControl></SourceControl>
+      <PAT token={data?.userContext?.pat}></PAT>
+      <SourceControl repoData={data?.repoData} userContext={data?.userContext}></SourceControl>
     </div>
   );
 };

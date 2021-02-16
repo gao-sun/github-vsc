@@ -1,6 +1,6 @@
 import { commands, Uri, window } from 'vscode';
 import { GitHubFS } from '../github-fs';
-import { getMatchingRef, getRepo } from '../github-fs/apis';
+import { getMatchingRef, getRepo } from '../apis';
 import { GitHubLocation } from '../github-fs/types';
 
 export const getLocation = async (): Promise<Location> => {

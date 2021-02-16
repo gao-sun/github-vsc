@@ -1,8 +1,9 @@
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { OctokitResponse } from '@octokit/types';
+import { GitHubRef, UserContext } from '@src/types/foundation';
 import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
-import { Directory, Entry, File, GitHubLocation, GitHubRef } from './types';
+import { Directory, Entry, File, GitHubLocation } from './github-fs/types';
 
 let octokit = new Octokit();
 
@@ -75,7 +76,7 @@ export const getRepo = (
   octokit.repos.get({ owner, repo });
 
 export const getMatchingRef = (
-  { owner, repo, ref }: GitHubRef,
+  { owner, repo, ref }: Omit<GitHubRef, 'sha'>,
   type: 'branch' | 'tag',
 ): Promise<RestEndpointMethodTypes['git']['listMatchingRefs']['response']> =>
   octokit.git.listMatchingRefs({
@@ -95,3 +96,10 @@ export const searchCode = (owner: string, repo: string, q: string): SearchReques
       headers: { accept: 'application/vnd.github.v3.text-match+json' },
     }),
   );
+
+export const getPermission = (
+  owner: string,
+  repo: string,
+  userContext: UserContext,
+): Promise<RestEndpointMethodTypes['repos']['getCollaboratorPermissionLevel']['response']> =>
+  octokit.repos.getCollaboratorPermissionLevel({ owner, repo, username: userContext.login });

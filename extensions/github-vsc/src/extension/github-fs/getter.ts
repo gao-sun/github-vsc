@@ -1,4 +1,4 @@
-import { readBlob, readEntries } from './apis';
+import { readBlob, readEntries } from '../apis';
 import {
   cachedEntries,
   cachedEntriesPromise,

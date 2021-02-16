@@ -1,5 +1,18 @@
 .sc {
+  .subtitle {
+    margin-bottom: 4px;
+  }
+
   .commit {
+    display: flex;
+    margin-bottom: 12px;
+
+    input {
+      flex-grow: 1;
+    }
+  }
+
+  .proposeChange {
     display: flex;
     align-items: center;
 
