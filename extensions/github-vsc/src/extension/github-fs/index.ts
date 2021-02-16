@@ -37,7 +37,8 @@ import {
   lookupAsDirectory,
   lookupAsDirectorySilently,
   lookupAsFile,
-  lookupIfFileDirty,
+  lookupIfFileDirtyWithoutFetching,
+  LOOKUP_ORIGINAL_KEY,
 } from './lookup';
 import { ControlPanelView } from '../control-panel-view';
 import {
@@ -175,7 +176,7 @@ export class GitHubFS
       return;
     }
 
-    if (!(await lookupIfFileDirty(this.root, location))) {
+    if (!(await lookupIfFileDirtyWithoutFetching(this.root, location))) {
       return;
     }
 
@@ -184,7 +185,7 @@ export class GitHubFS
 
   // MARK: QuickDiffProvider implementation
   provideOriginalResource?(uri: Uri, token: CancellationToken): Uri {
-    return Uri.joinPath(GitHubFS.rootUri, 'package.json');
+    return uri.with({ query: `${LOOKUP_ORIGINAL_KEY}=true` });
   }
 
   // MARK: FileSystemProvider implmentations

@@ -1,10 +1,12 @@
 import { FileSystemError } from 'vscode';
-import { getData, getEntries, isDataDirty } from './getter';
+import { getData, getEntries, isDataDirtyWithoutFetching } from './getter';
 import { Directory, Entry, EntryMap, File, GitHubLocation } from './types';
 
 export type LookupOptions = {
   caseInsensitive?: boolean;
 };
+
+export const LOOKUP_ORIGINAL_KEY = 'original';
 
 export const lookupEntry = async (
   root: Directory,
@@ -56,7 +58,10 @@ export const lookup = async (
   const entry = await lookupEntry(root, location, options);
 
   if (entry instanceof File) {
-    return [entry, await getData(location, entry.sha)];
+    return [
+      entry,
+      await getData(location, entry.sha, location.uri.query.includes(LOOKUP_ORIGINAL_KEY)),
+    ];
   }
 
   if (entry instanceof Directory) {
@@ -108,10 +113,10 @@ export const lookupAsFile = async (
   return [file, data as Uint8Array];
 };
 
-export const lookupIfFileDirty = async (
+export const lookupIfFileDirtyWithoutFetching = async (
   root: Directory,
   location: GitHubLocation,
 ): Promise<boolean> => {
   const entry = await lookupEntry(root, location);
-  return isDataDirty(entry.sha);
+  return isDataDirtyWithoutFetching(entry.sha);
 };

@@ -14,9 +14,10 @@ export const get = async <T>(
   cachedDict: Dictionary<string, T>,
   cachedPromiseDict: Dictionary<string, Promise<T>>,
   dirtyDict?: Dictionary<string, T>,
+  alwaysOriginal = false,
 ): Promise<T> => {
   const dirty = dirtyDict?.[key];
-  if (dirty) {
+  if (!alwaysOriginal && dirty) {
     return dirty;
   }
 
@@ -44,8 +45,21 @@ export const getEntries = (location: GitHubLocation, sha: string): Promise<Entry
   return get(sha, () => readEntries(location), cachedEntries, cachedEntriesPromise);
 };
 
-export const getData = async (location: GitHubLocation, sha: string): Promise<Uint8Array> =>
-  get(sha, () => readBlob(location, sha), cachedData, cachedDataPromise, dirtyData);
+export const getData = async (
+  location: GitHubLocation,
+  sha: string,
+  alwaysOriginal = false,
+): Promise<Uint8Array> =>
+  get(sha, () => readBlob(location, sha), cachedData, cachedDataPromise, dirtyData, alwaysOriginal);
 
-export const isDataDirty = (sha: string): boolean =>
-  Object.prototype.hasOwnProperty.call(dirtyData, sha);
+export const isDataDirtyWithoutFetching = async (sha: string): Promise<boolean> => {
+  const original = cachedData[sha];
+  const dirty = dirtyData[sha];
+  if (!original || !dirty) {
+    return false;
+  }
+
+  return (
+    original.length !== dirty.length || original.some((value, index) => value !== dirty[index])
+  );
+};
