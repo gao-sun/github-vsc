@@ -15,29 +15,9 @@
     margin-left: 4px;
   }
 
-  input {
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 2px;
-    outline: none;
-    flex-grow: 1;
-    margin-right: 12px;
-    padding: 4px 8px;
-
-    &:disabled {
-      opacity: 0.8;
-    }
-  }
-
   &.enabled {
     .dot {
       background: var(--vscode-charts-green);
     }
   }
-}
-
-.description {
-  color: var(--vscode-descriptionForeground);
-  margin-top: 12px;
 }

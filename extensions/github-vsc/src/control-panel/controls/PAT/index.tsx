@@ -7,6 +7,8 @@ import styles from './index.module.scss';
 import { vscodeApi } from '@/utils/vscode';
 import WebViewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
 import useListenMessage from '@/hooks/useListenMessage';
+import Title from '@/components/Title';
+import Description from '@/components/Description';
 
 export type Props = {
   token?: string;
@@ -68,7 +70,7 @@ const PAT = ({ token }: Props) => {
 
   return (
     <div>
-      <h4>GitHub Personal Access Token</h4>
+      <Title>GitHub Personal Access Token</Title>
       <div className={classNames(styles.patControl, hasToken && styles.enabled)}>
         {!isEditing && (
           <>
@@ -101,7 +103,7 @@ const PAT = ({ token }: Props) => {
           </>
         )}
       </div>
-      <div className={styles.description}>{getDescription()}</div>
+      <Description>{getDescription()}</Description>
     </div>
   );
 };
