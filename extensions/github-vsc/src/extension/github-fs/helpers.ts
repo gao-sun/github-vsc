@@ -1,5 +1,14 @@
-import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch, env } from 'vscode';
+import {
+  window as vsCodeWindow,
+  commands,
+  Uri,
+  Range,
+  TextSearchMatch,
+  env,
+  ExtensionContext,
+} from 'vscode';
 import { GitHubFS } from '.';
+import { getVSCodeData } from '../utils/global-state';
 import { conditional, conditionalString } from '../utils/object';
 import { SearchResponse } from './apis';
 import { lookup } from './lookup';
@@ -114,5 +123,28 @@ export const showGlobalSearchLimitationInfo = async (
 
   if (choose?.startsWith('Switch to')) {
     onSwitchBranch();
+  }
+};
+
+let hasGlobalSearchAPIInfoShown = false;
+
+export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promise<void> => {
+  if (hasGlobalSearchAPIInfoShown) {
+    return;
+  }
+
+  hasGlobalSearchAPIInfoShown = true;
+  const hasAuthToken = !!getVSCodeData(context)?.pat;
+
+  const choose = await vsCodeWindow.showInformationMessage(
+    'The Search API has a custom rate limit. ' +
+      (hasAuthToken
+        ? 'For authenticated requests, the rate limit is 30 requests per minute.'
+        : 'For unauthenticated requests, the rate limit is 10 requests per minute.'),
+    'Learn More',
+  );
+
+  if (choose === 'Learn More') {
+    env.openExternal(Uri.parse('https://docs.github.com/en/rest/reference/search#rate-limit'));
   }
 };

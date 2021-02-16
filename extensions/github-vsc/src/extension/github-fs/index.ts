@@ -31,6 +31,7 @@ import {
   convertGitHubSearchResponseToSearchResult,
   getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
+  showGlobalSearchAPIInfo,
   showGlobalSearchLimitationInfo,
 } from './helpers';
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
@@ -43,6 +44,7 @@ export class GitHubFS
   static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
   // MARK: fs properties
+  readonly extensionContext: ExtensionContext;
   root = new Directory(GitHubFS.rootUri, '', '');
   githubRef?: GitHubRef;
   defaultBranch?: string;
@@ -107,6 +109,7 @@ export class GitHubFS
     location?: GitHubLocation,
     defaultBranch?: string,
   ) {
+    this.extensionContext = extensionContext;
     this.defaultBranch = defaultBranch;
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
@@ -228,6 +231,8 @@ export class GitHubFS
       });
       return result;
     }
+
+    showGlobalSearchAPIInfo(this.extensionContext);
 
     try {
       const { data } = await searchCode(ref.owner, ref.repo, query.pattern);

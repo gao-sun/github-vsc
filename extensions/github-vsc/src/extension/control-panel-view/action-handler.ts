@@ -1,5 +1,4 @@
 import { Octokit } from '@octokit/rest';
-import { RequestError } from '@octokit/request-error';
 import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
 import { ExtensionContext, Webview } from 'vscode';
 import { getVSCodeData, setPartialVSCodeData } from '../utils/global-state';
