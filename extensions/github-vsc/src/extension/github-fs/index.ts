@@ -17,6 +17,13 @@ import {
   Uri,
   workspace,
   window as vsCodeWindow,
+  TextSearchProvider,
+  Progress,
+  ProviderResult,
+  TextSearchComplete,
+  TextSearchOptions,
+  TextSearchQuery,
+  TextSearchResult,
 } from 'vscode';
 import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
@@ -24,7 +31,8 @@ import { ControlPanelView } from '../control-panel-view';
 import { showDocumentOrRevealFolderIfNeeded } from './helpers';
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
 
-export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposable {
+export class GitHubFS
+  implements FileSystemProvider, FileSearchProvider, TextSearchProvider, Disposable {
   static scheme = 'github-fs';
   static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
@@ -151,6 +159,20 @@ export class GitHubFS implements FileSystemProvider, FileSearchProvider, Disposa
     ]);
 
     return [...parentEntries.entries(), ...currentEntries.entries()].map(([, { uri }]) => uri);
+  }
+
+  // MARK: TextSearchProvider implmentation
+  provideTextSearchResults(
+    query: TextSearchQuery,
+    options: TextSearchOptions,
+    progress: Progress<TextSearchResult>,
+    token: CancellationToken,
+  ): ProviderResult<TextSearchComplete> {
+    const result: TextSearchComplete = { limitHit: false };
+
+    console.log(options.maxResults);
+
+    return result;
   }
 
   // MARK: file events

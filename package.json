@@ -10,7 +10,7 @@
     "prepare-all": "node prepare-vsc.js && node prepare-extensions.js",
     "sync": "node sync-extensions.js",
     "dev-extension": "cd ./extensions/github-vsc && yarn watch",
-    "dev": "concurrently \"node debug-server.js\" \"yarn sync\" \"yarn dev-extension\""
+    "dev": "concurrently -p \"[{index}] {time}\" -t \"HH:mm:ss\" \"node debug-server.js\" \"yarn sync\" \"yarn dev-extension\""
   },
   "devDependencies": {
     "concurrently": "^5.3.0",
