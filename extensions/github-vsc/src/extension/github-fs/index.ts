@@ -24,9 +24,6 @@ import {
   TextSearchQuery,
   TextSearchResult,
   FileChangeType,
-  scm,
-  SourceControl,
-  QuickDiffProvider,
   FileDecorationProvider,
   FileDecoration,
   ThemeColor,
@@ -52,20 +49,21 @@ import { getShortenRef, replaceLocation } from '../utils/uri-decode';
 import { searchCode } from './apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
+import { GHFSSourceControl } from './source-control';
+import { isDataDirtyWithoutFetching } from './getter';
 
 export class GitHubFS
   implements
     FileSystemProvider,
     FileSearchProvider,
     TextSearchProvider,
-    QuickDiffProvider,
     FileDecorationProvider,
     Disposable {
   static scheme = 'github-fs';
   static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
   // MARK: fs properties
-  private ghfsSCM: SourceControl;
+  private ghfsSCM: GHFSSourceControl;
   private root = new Directory(GitHubFS.rootUri, '', '');
   private githubRef?: GitHubRef;
   readonly extensionContext: ExtensionContext;
@@ -133,7 +131,7 @@ export class GitHubFS
   ) {
     this.extensionContext = extensionContext;
     this.defaultBranch = defaultBranch;
-    this.ghfsSCM = scm.createSourceControl('ghfs-scm', 'GitHub VSC', GitHubFS.rootUri);
+    this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
@@ -149,14 +147,6 @@ export class GitHubFS
       vsCodeWindow.registerFileDecorationProvider(this),
       this.ghfsSCM,
     );
-
-    this.ghfsSCM.quickDiffProvider = this;
-    const group = this.ghfsSCM.createResourceGroup('changes', 'Changed Files');
-    group.resourceStates = [
-      {
-        resourceUri: Uri.joinPath(GitHubFS.rootUri, '.gitignore'),
-      },
-    ];
 
     this.switchTo(location);
   }
@@ -181,11 +171,6 @@ export class GitHubFS
     }
 
     return new FileDecoration('M', undefined, new ThemeColor('inputValidation.warningBorder'));
-  }
-
-  // MARK: QuickDiffProvider implementation
-  provideOriginalResource?(uri: Uri, token: CancellationToken): Uri {
-    return uri.with({ query: `${LOOKUP_ORIGINAL_KEY}=true` });
   }
 
   // MARK: FileSystemProvider implmentations
@@ -231,7 +216,7 @@ export class GitHubFS
     return data;
   }
 
-  writeFile(uri: Uri, content: Uint8Array): void {
+  async writeFile(uri: Uri, content: Uint8Array): Promise<void> {
     const location = this.getLocation(uri);
 
     if (!location) {
@@ -239,7 +224,16 @@ export class GitHubFS
     }
 
     try {
-      writeFile(this.root, location, content);
+      const { sha } = await writeFile(this.root, location, content);
+
+      // use `.then()` for quicker returning
+      isDataDirtyWithoutFetching(sha).then((isDirty) => {
+        if (isDirty) {
+          this.ghfsSCM.addChangedFile(uri);
+        } else {
+          this.ghfsSCM.removeChangedFile(uri);
+        }
+      });
       this._fireSoon({ type: FileChangeType.Changed, uri });
     } catch {
       vsCodeWindow.showWarningMessage('Unsupported operation.');

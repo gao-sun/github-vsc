@@ -10,7 +10,7 @@ export const writeFile = async (
   root: Directory,
   { owner, repo, ref, uri }: GitHubLocation,
   data: Uint8Array,
-): Promise<void> => {
+): Promise<File> => {
   let nodeSegment = '';
   let node: Optional<Entry>;
   let parent: Entry = root;
@@ -44,4 +44,5 @@ export const writeFile = async (
   dirtyData[node.sha] = data;
   const entryMap = await getEntries({ owner, repo, ref, uri: parent.uri }, parent.sha);
   entryMap.set(nodeSegment, updatedFile(node, data.byteLength));
+  return node;
 };
