@@ -1,4 +1,6 @@
-import { window as vsCodeWindow, commands } from 'vscode';
+import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch } from 'vscode';
+import { GitHubFS } from '.';
+import { SearchResponse } from './apis';
 import { lookup } from './lookup';
 import { Directory, File, GitHubLocation } from './types';
 
@@ -19,3 +21,65 @@ export const showDocumentOrRevealFolderIfNeeded = async (
     // do nothing
   }
 };
+
+const firstNewLineBeforeIndex = (str: string, index: number) => {
+  for (let i = index - 1; i >= 0; --i) {
+    if (str[i] === '\n' || str[i] === '\r') {
+      return i;
+    }
+  }
+  return -1;
+};
+
+const firstNewLineAfterIndex = (str: string, index: number) => {
+  for (let i = index + 1; i < str.length; ++i) {
+    if (str[i] === '\n' || str[i] === '\r') {
+      return i;
+    }
+  }
+  return str.length;
+};
+
+const getRange = (str: string, match: string): [number, number] => {
+  const index = str.indexOf(match);
+
+  if (index < 0) {
+    return [0, 0];
+  }
+  return [index, index + match.length];
+};
+
+export const convertGitHubSearchResponseToSearchResult = (
+  data: SearchResponse,
+): TextSearchMatch[] =>
+  data.items.map(({ text_matches, path }) => {
+    const organizedMatches = text_matches
+      .filter(({ matches }) => !!matches[0])
+      .map(({ fragment, matches }, index) => {
+        const [start, end] = matches[0].indices;
+        const parsedFragment = fragment
+          .slice(
+            firstNewLineBeforeIndex(fragment, start) + 1,
+            firstNewLineAfterIndex(fragment, end),
+          )
+          .replace(/(\r\n|\r|\n)/g, ' ');
+        const parsedMatchText = matches[0].text.replace(/(\r\n|\r|\n)/g, ' ');
+        const [matchStart, matchEnd] = getRange(parsedFragment, parsedMatchText);
+
+        return {
+          fragment: parsedFragment,
+          match: new Range(index, matchStart, index, matchEnd),
+        };
+      });
+
+    return {
+      uri: Uri.joinPath(GitHubFS.rootUri, path),
+      // kind of tricky here since GitHub doesn't return detailed match location
+      // maybe provide an option to turn on precise jumping?
+      ranges: organizedMatches.map((_, index) => new Range(index, 0, index, 0)),
+      preview: {
+        text: organizedMatches.map(({ fragment }) => fragment).join('\n'),
+        matches: organizedMatches.map(({ match }) => match),
+      },
+    };
+  });

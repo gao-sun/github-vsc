@@ -1,4 +1,5 @@
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
+import { OctokitResponse } from '@octokit/types';
 import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
 import { Directory, Entry, File, GitHubLocation, GitHubRef } from './types';
@@ -82,3 +83,15 @@ export const getMatchingRef = (
     repo,
     ref: `${type === 'branch' ? 'heads' : 'tags'}/${ref}`,
   });
+
+export type SearchResponse = RestEndpointMethodTypes['search']['code']['response']['data'];
+
+export type SearchRequest = Promise<OctokitResponse<SearchResponse>>;
+
+export const searchCode = (owner: string, repo: string, q: string): SearchRequest =>
+  octokit.request<SearchResponse>(
+    octokit.search.code.endpoint({
+      q: `${q}+in:file+repo:${owner}/${repo}`,
+      headers: { accept: 'application/vnd.github.v3.text-match+json' },
+    }),
+  );

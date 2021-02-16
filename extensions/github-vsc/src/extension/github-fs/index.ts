@@ -19,7 +19,6 @@ import {
   window as vsCodeWindow,
   TextSearchProvider,
   Progress,
-  ProviderResult,
   TextSearchComplete,
   TextSearchOptions,
   TextSearchQuery,
@@ -28,8 +27,12 @@ import {
 import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
 import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
 import { ControlPanelView } from '../control-panel-view';
-import { showDocumentOrRevealFolderIfNeeded } from './helpers';
+import {
+  convertGitHubSearchResponseToSearchResult,
+  showDocumentOrRevealFolderIfNeeded,
+} from './helpers';
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
+import { searchCode } from './apis';
 
 export class GitHubFS
   implements FileSystemProvider, FileSearchProvider, TextSearchProvider, Disposable {
@@ -59,6 +62,7 @@ export class GitHubFS
         isReadonly: true,
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
+      workspace.registerTextSearchProvider(GitHubFS.scheme, this),
       vsCodeWindow.registerWebviewViewProvider(
         'github-vsc-control-panel',
         new ControlPanelView(extensionContext),
@@ -162,15 +166,27 @@ export class GitHubFS
   }
 
   // MARK: TextSearchProvider implmentation
-  provideTextSearchResults(
+  async provideTextSearchResults(
     query: TextSearchQuery,
     options: TextSearchOptions,
     progress: Progress<TextSearchResult>,
     token: CancellationToken,
-  ): ProviderResult<TextSearchComplete> {
+  ): Promise<TextSearchComplete> {
+    // leave this false - ignore `options.maxResults` just show top 100 results
+    // until someone complain
     const result: TextSearchComplete = { limitHit: false };
+    const ref = this.githubRef;
 
-    console.log(options.maxResults);
+    if (!ref) {
+      return result;
+    }
+
+    try {
+      const { data } = await searchCode(ref.owner, ref.repo, query.pattern);
+      convertGitHubSearchResponseToSearchResult(data).forEach((match) => progress.report(match));
+    } catch (error) {
+      vsCodeWindow.showWarningMessage(error?.message ?? 'Endpoint responded with error.');
+    }
 
     return result;
   }

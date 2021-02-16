@@ -58,7 +58,7 @@ export const actionHandler = async (
         deliverValidatePATResult(webview, false);
       }
     } catch (error) {
-      deliverValidatePATResult(webview, false, (error as RequestError).message);
+      deliverValidatePATResult(webview, false, error?.message ?? 'Endpoint responded with error.');
     }
   }
 
