@@ -46,3 +46,6 @@ export const getEntries = (location: GitHubLocation, sha: string): Promise<Entry
 
 export const getData = async (location: GitHubLocation, sha: string): Promise<Uint8Array> =>
   get(sha, () => readBlob(location, sha), cachedData, cachedDataPromise, dirtyData);
+
+export const isDataDirty = (sha: string): boolean =>
+  Object.prototype.hasOwnProperty.call(dirtyData, sha);

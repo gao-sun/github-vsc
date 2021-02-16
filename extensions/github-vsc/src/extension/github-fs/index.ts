@@ -24,9 +24,21 @@ import {
   TextSearchQuery,
   TextSearchResult,
   FileChangeType,
+  scm,
+  SourceControl,
+  QuickDiffProvider,
+  FileDecorationProvider,
+  FileDecoration,
+  ThemeColor,
 } from 'vscode';
 import { Directory, Entry, GitHubLocation, GitHubRef } from './types';
-import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } from './lookup';
+import {
+  lookup,
+  lookupAsDirectory,
+  lookupAsDirectorySilently,
+  lookupAsFile,
+  lookupIfFileDirty,
+} from './lookup';
 import { ControlPanelView } from '../control-panel-view';
 import {
   convertGitHubSearchResponseToSearchResult,
@@ -41,15 +53,22 @@ import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 
 export class GitHubFS
-  implements FileSystemProvider, FileSearchProvider, TextSearchProvider, Disposable {
+  implements
+    FileSystemProvider,
+    FileSearchProvider,
+    TextSearchProvider,
+    QuickDiffProvider,
+    FileDecorationProvider,
+    Disposable {
   static scheme = 'github-fs';
   static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
   // MARK: fs properties
+  private ghfsSCM: SourceControl;
+  private root = new Directory(GitHubFS.rootUri, '', '');
+  private githubRef?: GitHubRef;
   readonly extensionContext: ExtensionContext;
-  root = new Directory(GitHubFS.rootUri, '', '');
-  githubRef?: GitHubRef;
-  defaultBranch?: string;
+  readonly defaultBranch?: string;
 
   // MARK: fs helpers
   private getLocation(uri: Uri): Optional<GitHubLocation> {
@@ -113,6 +132,7 @@ export class GitHubFS
   ) {
     this.extensionContext = extensionContext;
     this.defaultBranch = defaultBranch;
+    this.ghfsSCM = scm.createSourceControl('ghfs-scm', 'GitHub VSC', GitHubFS.rootUri);
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
@@ -125,13 +145,46 @@ export class GitHubFS
       ),
       // change uri when document opening/closing
       vsCodeWindow.onDidChangeActiveTextEditor(() => this.updateBroswerUrl()),
+      vsCodeWindow.registerFileDecorationProvider(this),
+      this.ghfsSCM,
     );
+
+    this.ghfsSCM.quickDiffProvider = this;
+    const group = this.ghfsSCM.createResourceGroup('changes', 'Changed Files');
+    group.resourceStates = [
+      {
+        resourceUri: Uri.joinPath(GitHubFS.rootUri, '.gitignore'),
+      },
+    ];
 
     this.switchTo(location);
   }
 
   dispose(): void {
     this.disposable?.dispose();
+  }
+
+  // MARK: FileDecorationProvider implementation
+  async provideFileDecoration(
+    uri: Uri,
+    token: CancellationToken,
+  ): Promise<Optional<FileDecoration>> {
+    const location = this.getLocation(uri);
+
+    if (!location) {
+      return;
+    }
+
+    if (!(await lookupIfFileDirty(this.root, location))) {
+      return;
+    }
+
+    return new FileDecoration('M', undefined, new ThemeColor('inputValidation.warningBorder'));
+  }
+
+  // MARK: QuickDiffProvider implementation
+  provideOriginalResource?(uri: Uri, token: CancellationToken): Uri {
+    return Uri.joinPath(GitHubFS.rootUri, 'package.json');
   }
 
   // MARK: FileSystemProvider implmentations
@@ -260,21 +313,27 @@ export class GitHubFS
   }
 
   // MARK: file events
-  private _emitter = new EventEmitter<FileChangeEvent[]>();
-  private _bufferedEvents: FileChangeEvent[] = [];
-  readonly onDidChangeFile = this._emitter.event;
+  private _fileChangeEmitter = new EventEmitter<FileChangeEvent[]>();
+  private _fileDecorationChangeEmitter = new EventEmitter<Uri[]>();
+  private _bufferedFileEvents: FileChangeEvent[] = [];
+  private _bufferedFileDecorationEvents: Uri[] = [];
+  readonly onDidChangeFile = this._fileChangeEmitter.event;
+  readonly onDidChangeFileDecorations = this._fileDecorationChangeEmitter.event;
   private _fireSoonHandle: null | ReturnType<typeof setTimeout> = null;
 
   private _fireSoon(...events: FileChangeEvent[]): void {
-    this._bufferedEvents.push(...events);
+    this._bufferedFileEvents.push(...events);
+    this._bufferedFileDecorationEvents.push(...events.map(({ uri }) => uri));
 
     if (this._fireSoonHandle) {
       clearTimeout(this._fireSoonHandle);
     }
 
     this._fireSoonHandle = setTimeout(() => {
-      this._emitter.fire(this._bufferedEvents);
-      this._bufferedEvents.length = 0;
+      this._fileChangeEmitter.fire(this._bufferedFileEvents);
+      this._fileDecorationChangeEmitter.fire(this._bufferedFileDecorationEvents);
+      this._bufferedFileEvents = [];
+      this._bufferedFileDecorationEvents = [];
     }, 5);
   }
 }

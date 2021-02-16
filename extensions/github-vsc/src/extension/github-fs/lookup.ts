@@ -1,16 +1,16 @@
 import { FileSystemError } from 'vscode';
-import { getData, getEntries } from './getter';
+import { getData, getEntries, isDataDirty } from './getter';
 import { Directory, Entry, EntryMap, File, GitHubLocation } from './types';
 
 export type LookupOptions = {
   caseInsensitive?: boolean;
 };
 
-export const lookup = async (
+export const lookupEntry = async (
   root: Directory,
   { owner, repo, ref, uri }: GitHubLocation,
   options?: LookupOptions,
-): Promise<[File, Uint8Array] | [Directory, EntryMap]> => {
+): Promise<File | Directory> => {
   const { caseInsensitive }: LookupOptions = { caseInsensitive: false, ...options };
   let entry: Entry = root;
 
@@ -38,14 +38,32 @@ export const lookup = async (
   console.log('lookup result', owner, repo, ref, uri.path, entry);
 
   if (entry instanceof File) {
-    return [entry, await getData({ owner, repo, ref, uri }, entry.sha)];
+    return entry;
   }
 
   if (entry instanceof Directory) {
-    return [entry, await getEntries({ owner, repo, ref, uri }, entry.sha)];
+    return entry;
   }
 
   throw FileSystemError.Unavailable(uri);
+};
+
+export const lookup = async (
+  root: Directory,
+  location: GitHubLocation,
+  options?: LookupOptions,
+): Promise<[File, Uint8Array] | [Directory, EntryMap]> => {
+  const entry = await lookupEntry(root, location, options);
+
+  if (entry instanceof File) {
+    return [entry, await getData(location, entry.sha)];
+  }
+
+  if (entry instanceof Directory) {
+    return [entry, await getEntries(location, entry.sha)];
+  }
+
+  throw FileSystemError.Unavailable(location.uri);
 };
 
 export const lookupAsDirectory = async (
@@ -88,4 +106,12 @@ export const lookupAsFile = async (
   }
 
   return [file, data as Uint8Array];
+};
+
+export const lookupIfFileDirty = async (
+  root: Directory,
+  location: GitHubLocation,
+): Promise<boolean> => {
+  const entry = await lookupEntry(root, location);
+  return isDataDirty(entry.sha);
 };
