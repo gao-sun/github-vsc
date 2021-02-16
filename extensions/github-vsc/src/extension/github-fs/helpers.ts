@@ -1,8 +1,12 @@
-import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch } from 'vscode';
+import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch, env } from 'vscode';
 import { GitHubFS } from '.';
+import { conditional, conditionalString } from '../utils/object';
 import { SearchResponse } from './apis';
 import { lookup } from './lookup';
-import { Directory, File, GitHubLocation } from './types';
+import { Directory, File, GitHubLocation, GitHubRef } from './types';
+
+export const getGitHubRefDescription = (ref?: GitHubRef): string =>
+  (ref && `${ref.owner}/${ref.repo}:${ref.ref}`) ?? 'GitHub VSC';
 
 export const showDocumentOrRevealFolderIfNeeded = async (
   root: Directory,
@@ -83,3 +87,32 @@ export const convertGitHubSearchResponseToSearchResult = (
       },
     };
   });
+
+let hasGlobalSearchLimitationInfoShown = false;
+
+export const showGlobalSearchLimitationInfo = async (
+  defaultBranch: Optional<string>,
+  onSwitchBranch: () => void,
+): Promise<void> => {
+  if (hasGlobalSearchLimitationInfoShown) {
+    return;
+  }
+  hasGlobalSearchLimitationInfoShown = true;
+  const choose = await vsCodeWindow.showInformationMessage(
+    'Cannot procceed searching for un-opened files due to the limitation of GitHub API. ' +
+      `Global search is only availble on the default branch ${conditionalString(
+        defaultBranch && `\`${defaultBranch}\``,
+      )}.`,
+    ...[conditional(defaultBranch && `Switch to ${defaultBranch}`), 'Learn More'].compact(),
+  );
+
+  if (choose === 'Learn More') {
+    env.openExternal(
+      Uri.parse('https://docs.github.com/en/rest/reference/search#considerations-for-code-search'),
+    );
+  }
+
+  if (choose?.startsWith('Switch to')) {
+    onSwitchBranch();
+  }
+};

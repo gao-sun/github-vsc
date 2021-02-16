@@ -13,16 +13,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   updateAPIAuth(vsCodeData?.pat);
 
-  const location = await decodePathAsGitHubLocation();
-  const name = (location && `${location.owner}/${location.repo}:${location.ref}`) ?? 'GitHub VSC';
+  const [location, defaultBranch] = await decodePathAsGitHubLocation();
   console.log('decoded location', location);
 
-  vscode.workspace.updateWorkspaceFolders(0, vscode.workspace.workspaceFolders?.length, {
-    uri: GitHubFS.rootUri,
-    name,
-  });
-
-  context.subscriptions.push(new GitHubFS(context, location));
+  context.subscriptions.push(new GitHubFS(context, location, defaultBranch));
 
   console.log('GitHub VSC activated');
 }

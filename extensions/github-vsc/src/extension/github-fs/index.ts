@@ -29,10 +29,13 @@ import { lookup, lookupAsDirectory, lookupAsDirectorySilently, lookupAsFile } fr
 import { ControlPanelView } from '../control-panel-view';
 import {
   convertGitHubSearchResponseToSearchResult,
+  getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
+  showGlobalSearchLimitationInfo,
 } from './helpers';
 import { getShortenRef, replaceLocation } from '../utils/uri-decode';
 import { searchCode } from './apis';
+import { reopenFolder } from '../utils/workspace';
 
 export class GitHubFS
   implements FileSystemProvider, FileSearchProvider, TextSearchProvider, Disposable {
@@ -42,6 +45,7 @@ export class GitHubFS
   // MARK: fs properties
   root = new Directory(GitHubFS.rootUri, '', '');
   githubRef?: GitHubRef;
+  defaultBranch?: string;
 
   // MARK: fs helpers
   private getLocation(uri: Uri): Optional<GitHubLocation> {
@@ -52,10 +56,58 @@ export class GitHubFS
     return { ...this.githubRef, uri };
   }
 
+  private isOnDefaultBranch(): boolean {
+    const ref = this.githubRef?.ref;
+    const defaultBranch = this.defaultBranch;
+
+    if (!ref || !defaultBranch) {
+      return false;
+    }
+
+    return ref === defaultBranch || getShortenRef(ref) === defaultBranch;
+  }
+
+  private reopen(name: string) {
+    reopenFolder(name);
+    this.updateBroswerUrl();
+  }
+
+  private switchTo(location?: GitHubLocation) {
+    const description = getGitHubRefDescription(location);
+    this.root = new Directory(GitHubFS.rootUri, description, description);
+
+    if (!location) {
+      this.githubRef = undefined;
+      this.reopen(description);
+      return;
+    }
+
+    const { uri: _, ...githubRef } = location;
+    this.githubRef = githubRef;
+    this.reopen(description);
+    showDocumentOrRevealFolderIfNeeded(this.root, location);
+  }
+
+  private updateBroswerUrl() {
+    if (this.githubRef) {
+      const { owner, repo, ref } = this.githubRef;
+      replaceLocation(
+        `/${owner}/${repo}/tree/${getShortenRef(ref)}${
+          vsCodeWindow.activeTextEditor?.document.uri.path ?? ''
+        }`,
+      );
+    }
+  }
+
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(extensionContext: ExtensionContext, location?: GitHubLocation) {
+  constructor(
+    extensionContext: ExtensionContext,
+    location?: GitHubLocation,
+    defaultBranch?: string,
+  ) {
+    this.defaultBranch = defaultBranch;
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
@@ -68,21 +120,10 @@ export class GitHubFS
         new ControlPanelView(extensionContext),
       ),
       // change uri when document opening/closing
-      vsCodeWindow.onDidChangeActiveTextEditor((editor) => {
-        if (this.githubRef) {
-          const { owner, repo, ref } = this.githubRef;
-          replaceLocation(
-            `/${owner}/${repo}/tree/${getShortenRef(ref)}${editor?.document.uri.path ?? ''}`,
-          );
-        }
-      }),
+      vsCodeWindow.onDidChangeActiveTextEditor(() => this.updateBroswerUrl()),
     );
 
-    if (location) {
-      const { uri: _, ...githubRef } = location;
-      this.githubRef = githubRef;
-      showDocumentOrRevealFolderIfNeeded(this.root, location);
-    }
+    this.switchTo(location);
   }
 
   dispose(): void {
@@ -170,14 +211,21 @@ export class GitHubFS
     query: TextSearchQuery,
     options: TextSearchOptions,
     progress: Progress<TextSearchResult>,
+    // TO-DO: cancel if needed
     token: CancellationToken,
   ): Promise<TextSearchComplete> {
     // leave this false - ignore `options.maxResults` just show top 100 results
     // until someone complain
     const result: TextSearchComplete = { limitHit: false };
     const ref = this.githubRef;
+    const defaultBranch = this.defaultBranch;
 
-    if (!ref) {
+    if (!ref || !this.isOnDefaultBranch()) {
+      showGlobalSearchLimitationInfo(defaultBranch, () => {
+        if (defaultBranch && this.githubRef) {
+          this.switchTo({ ...this.githubRef, ref: defaultBranch, uri: GitHubFS.rootUri });
+        }
+      });
       return result;
     }
 

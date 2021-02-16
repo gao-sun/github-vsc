@@ -1,4 +1,4 @@
-import { commands, Uri } from 'vscode';
+import { commands, Uri, window } from 'vscode';
 import { GitHubFS } from '../github-fs';
 import { getMatchingRef, getRepo } from '../github-fs/apis';
 import { GitHubLocation } from '../github-fs/types';
@@ -33,11 +33,11 @@ export const getDefaultBranch = async (owner: string, repo: string): Promise<Opt
 
 export const decodePathAsGitHubLocation = async (
   path?: string,
-): Promise<Optional<GitHubLocation>> => {
+): Promise<[Optional<GitHubLocation>, Optional<string>]> => {
   const [owner, repo, rest] = await decodePathAsOptionalStringArray(path);
 
   if (!owner || !repo) {
-    return;
+    return [undefined, undefined];
   }
 
   const defaultBranch = await getDefaultBranch(owner, repo);
@@ -45,9 +45,12 @@ export const decodePathAsGitHubLocation = async (
   // trying to get default branch
   if (!rest) {
     if (!defaultBranch) {
-      return;
+      return [undefined, undefined];
     }
-    return { owner, repo, ref: `refs/heads/${defaultBranch}`, uri: GitHubFS.rootUri };
+    return [
+      { owner, repo, ref: `refs/heads/${defaultBranch}`, uri: GitHubFS.rootUri },
+      defaultBranch,
+    ];
   }
 
   const [matchingRef] = rest.split('/');
@@ -63,21 +66,31 @@ export const decodePathAsGitHubLocation = async (
 
     if (found) {
       const shortenRef = getShortenRef(found.ref);
-      return {
-        owner,
-        repo,
-        ref: found.ref,
-        uri: Uri.joinPath(GitHubFS.rootUri, rest.slice(shortenRef.length)),
-      };
+      return [
+        {
+          owner,
+          repo,
+          ref: found.ref,
+          uri: Uri.joinPath(GitHubFS.rootUri, rest.slice(shortenRef.length)),
+        },
+        defaultBranch,
+      ];
     }
 
     // fallback to default branch ref
     if (defaultBranch) {
-      return { owner, repo, ref: defaultBranch, uri: Uri.joinPath(GitHubFS.rootUri, rest) };
+      window.showWarningMessage(`Ref not found, fallback to default branch \`${defaultBranch}\`.`);
+      return [
+        { owner, repo, ref: defaultBranch, uri: Uri.joinPath(GitHubFS.rootUri, rest) },
+        defaultBranch,
+      ];
     }
-  } catch {
-    console.error('error when getting matching ref', owner, repo);
+  } catch (error) {
+    console.error('error when getting matching ref', owner, repo, error);
   }
+
+  window.showWarningMessage(`Ref matching failed`);
+  return [undefined, undefined];
 };
 
 export const getShortenRef = (ref: string): string => {
