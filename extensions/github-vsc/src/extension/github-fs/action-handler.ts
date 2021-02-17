@@ -19,6 +19,7 @@ import { lookupAsFile } from './lookup';
 import { Directory, File, GitFileType } from './types';
 import dayjs from 'dayjs';
 import { wait } from '../utils/wait';
+import { conditional } from '../utils/object';
 
 export const postAction = async (
   webview: Optional<Webview>,
@@ -175,6 +176,46 @@ const getCommitRepo = async (
   return [forkOwner, forkRepo];
 };
 
+const getBranchRefAndShaForCommit = async (
+  webview: Optional<Webview>,
+  commitMethod: CommitMethod,
+  originalOwner: string,
+  originalRepo: string,
+  originalRef: string,
+  owner: string,
+  repo: string,
+  branchName: string,
+): Promise<[string, string]> => {
+  const branchFullRef = buildFullRef(branchName, 'branch');
+  const [matchedRef, matchedBranch] = await Promise.all([
+    getRefSilently({ owner: originalOwner, repo: originalRepo, ref: originalRef }, 'branch'),
+    conditional(
+      commitMethod !== CommitMethod.Commit &&
+        getRefSilently({ owner, repo, ref: branchName }, 'branch'),
+    ),
+  ]);
+
+  if (!matchedRef) {
+    throw new Error(
+      `No matching ref '${originalRef}' in ${originalOwner}/${originalRepo}, it could be already deleted, or you do not have the access to.`,
+    );
+  }
+
+  if (commitMethod === CommitMethod.Commit) {
+    return [originalRef, matchedRef.object.sha];
+  }
+
+  if (matchedBranch?.ref === branchFullRef) {
+    throw new Error(`Branch '${branchName}' already exists.`);
+  }
+
+  deliverCommitChangesMessage(webview, `Creating branch ${branchName}...`);
+  const {
+    data: { ref },
+  } = await createGitRef(owner, repo, branchFullRef, matchedRef.object.sha);
+  return [ref, matchedRef.object.sha];
+};
+
 const _commitChanges = async (
   webview: Optional<Webview>,
   githubRef: Optional<GitHubRef>,
@@ -186,39 +227,29 @@ const _commitChanges = async (
     throw new Error('Missing repo info.');
   }
 
-  const { commitMessage, branchName } = payload;
+  const { commitMethod, commitMessage, branchName } = payload;
 
-  if (!commitMessage || !branchName) {
+  if (commitMethod !== CommitMethod.Commit && (!commitMessage || !branchName)) {
     throw new Error('Both commit message and branch name are required.');
   }
 
-  const branchFullRef = buildFullRef(branchName, 'branch');
+  if (commitMethod === CommitMethod.Commit && !commitMessage) {
+    throw new Error('Commit message is required.');
+  }
+
   const { owner: originalOwner, repo: originalRepo, ref } = githubRef;
-  const [owner, repo] = await getCommitRepo(
+  const [owner, repo] = await getCommitRepo(webview, commitMethod, originalOwner, originalRepo);
+  const [refForCommit, shaForCommit] = await getBranchRefAndShaForCommit(
     webview,
-    payload.commitMethod,
+    commitMethod,
     originalOwner,
     originalRepo,
+    ref,
+    owner,
+    repo,
+    branchName,
   );
-
-  const [matchedRef, matchedBranch] = await Promise.all([
-    // use get ref here
-    getRefSilently({ owner: originalOwner, repo: originalRepo, ref }, 'branch'),
-    getRefSilently({ owner, repo, ref: branchName }, 'branch'),
-  ]);
-
-  if (!matchedRef) {
-    throw new Error(
-      `No matching ref '${ref}' in ${originalOwner}/${originalRepo}, it could be already deleted, or you do not have the access to.`,
-    );
-  }
-
-  if (matchedBranch?.ref === branchFullRef) {
-    throw new Error(`Branch '${branchName}' already exists.`);
-  }
-
-  deliverCommitChangesMessage(webview, `Creating branch ${branchName}...`);
-  const { data: newRef } = await createGitRef(owner, repo, branchFullRef, matchedRef.object.sha);
+  const branchForCommit = getShortenRef(refForCommit);
 
   deliverCommitChangesMessage(webview, 'Uploading files...');
   const files = await Promise.all(
@@ -238,7 +269,7 @@ const _commitChanges = async (
   } = await createTree(
     owner,
     repo,
-    newRef.ref,
+    refForCommit,
     uploadResults.map(([{ mode, uri }, { data: { sha } }]) => ({
       mode,
       path: uri.path.slice(1),
@@ -249,22 +280,26 @@ const _commitChanges = async (
 
   const {
     data: { sha },
-  } = await createCommit(owner, repo, commitMessage, newTreeSha, matchedRef.object.sha);
+  } = await createCommit(owner, repo, commitMessage, newTreeSha, shaForCommit);
 
-  await updateGitRef(owner, repo, buildRef(branchName, 'branch'), sha);
+  await updateGitRef(owner, repo, buildRef(refForCommit, 'branch'), sha);
 
-  if (payload.commitMethod === CommitMethod.PR) {
+  if (commitMethod === CommitMethod.Commit) {
+    env.openExternal(Uri.parse(`https://github.com/${owner}/${repo}/commit/${sha}`));
+  }
+
+  if (commitMethod === CommitMethod.PR) {
     env.openExternal(
-      Uri.parse(`https://github.com/${owner}/${repo}/compare/${branchName}?expand=1`),
+      Uri.parse(`https://github.com/${owner}/${repo}/compare/${branchForCommit}?expand=1`),
     );
   }
 
-  if (payload.commitMethod === CommitMethod.Fork) {
+  if (commitMethod === CommitMethod.Fork) {
     env.openExternal(
       Uri.parse(
         `https://github.com/${originalOwner}/${originalRepo}/compare/${getShortenRef(
           ref,
-        )}...${owner}:${branchName}?expand=1`,
+        )}...${owner}:${branchForCommit}?expand=1`,
       ),
     );
   }

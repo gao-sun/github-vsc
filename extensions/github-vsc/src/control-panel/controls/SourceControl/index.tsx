@@ -81,7 +81,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
   const commit = () => {
     const payload: ProposeChangesPayload = {
       commitMessage,
-      branchName,
+      branchName: conditionalString(commitMethod !== CommitMethod.Commit && branchName),
       commitMethod,
     };
     const action: WebViewAction = {
@@ -179,13 +179,21 @@ const SourceControl = ({ repoData, userContext }: Props) => {
                   disabled={loading}
                   type="text"
                   value={branchName}
-                  onChange={({ target: { value } }) => setBranchName(value)}
+                  onChange={({ target: { value } }) => {
+                    setError('');
+                    setBranchName(value);
+                  }}
                 />
                 <Button disabled={loading} type="secondary" onClick={commit}>
                   Propose Changes
                 </Button>
               </div>
             </>
+          )}
+          {commitMethod === CommitMethod.Commit && (
+            <Button disabled={loading} type="secondary" onClick={commit}>
+              Commit Changes
+            </Button>
           )}
           {!isShowingMessage && !hasWritePermission && (
             <Tip>
