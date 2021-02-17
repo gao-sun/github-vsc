@@ -49,7 +49,7 @@ import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
 import { GitHubRef } from '@src/types/foundation';
-import { postUpdateData, proposeChanges, updateRepoData, validatePAT } from './action-handler';
+import { postUpdateData, commitChanges, updateRepoData, validatePAT } from './action-handler';
 import { getVSCodeData } from '../utils/global-state';
 import { showGlobalSearchLimitationInfo, showGlobalSearchAPIInfo } from './message';
 import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
@@ -101,7 +101,7 @@ export class GitHubFS
   private async updateRepoData() {
     const vsCodeData = await getVSCodeData(this.extensionContext);
 
-    if (!this.githubRef || !vsCodeData?.userContext) {
+    if (!this.githubRef) {
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), undefined);
       return;
     }
@@ -109,7 +109,7 @@ export class GitHubFS
     const { owner, repo } = this.githubRef;
 
     try {
-      const { data } = await getPermission(owner, repo, vsCodeData.userContext);
+      const { data } = await getPermission(owner, repo, vsCodeData?.userContext);
 
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
         ref: this.githubRef,
@@ -163,11 +163,11 @@ export class GitHubFS
     const context = this.extensionContext;
 
     if (action === WebviewActionEnum.ValidatePAT) {
-      validatePAT(webview, context, payload, this.onDataUpdated);
+      validatePAT(webview, context, payload, () => this.onDataUpdated());
     }
 
-    if (action === WebviewActionEnum.ProposeChanges) {
-      proposeChanges(webview, this.githubRef, payload, this.ghfsSCM.getChangedFiles(), this.root);
+    if (action === WebviewActionEnum.CommitChanges) {
+      commitChanges(webview, this.githubRef, payload, this.ghfsSCM.getChangedFiles(), this.root);
     }
 
     if (action === WebviewActionEnum.RequestData) {

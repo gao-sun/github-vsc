@@ -111,7 +111,7 @@ export const validatePAT = async (
   }
 };
 
-const deliverProposeChangesResult = async (
+const deliverCommitChangesResult = async (
   webview: Optional<Webview>,
   success: boolean,
   message?: string,
@@ -120,7 +120,7 @@ const deliverProposeChangesResult = async (
     return true;
   }
   return postAction(webview, {
-    action: WebviewActionEnum.ProposeChangesResult,
+    action: WebviewActionEnum.CommitChangesResult,
     payload: {
       success,
       message,
@@ -128,20 +128,34 @@ const deliverProposeChangesResult = async (
   });
 };
 
-const _proposeChanges = async (
+const deliverCommitChangesMessage = async (
+  webview: Optional<Webview>,
+  message: string,
+): Promise<boolean> => {
+  if (!webview) {
+    return true;
+  }
+  return postAction(webview, {
+    action: WebviewActionEnum.CommitChangesMessage,
+    payload: message,
+  });
+};
+
+const _commitChanges = async (
+  webview: Optional<Webview>,
   githubRef: Optional<GitHubRef>,
   payload: ProposeChangesPayload,
   changedFiles: Uri[],
   root: Directory,
 ) => {
   if (!githubRef) {
-    return;
+    throw new Error('Missing repo info.');
   }
 
   const { commitMessage, branchName } = payload;
 
   if (!commitMessage || !branchName) {
-    return;
+    throw new Error('Both commit message and branch name are required.');
   }
 
   const branchFullRef = buildFullRef(branchName, 'branch');
@@ -153,14 +167,19 @@ const _proposeChanges = async (
   ]);
 
   if (!matchedRef) {
-    return;
+    throw new Error(
+      `No matching ref on '${ref}', it could be already deleted, or you do not have the access to.`,
+    );
   }
 
   if (matchedBranch?.ref === branchFullRef) {
-    return;
+    throw new Error(`Branch '${branchName}' already exists.`);
   }
 
+  deliverCommitChangesMessage(webview, `Creating branch ${branchName}...`);
   const { data: newRef } = await createGitRef(owner, repo, branchFullRef, matchedRef.object.sha);
+
+  deliverCommitChangesMessage(webview, 'Uploading files...');
   const files = await Promise.all(
     changedFiles.map((uri) => lookupAsFile(root, { ...githubRef, uri })),
   );
@@ -171,6 +190,8 @@ const _proposeChanges = async (
       > => [file, await createBlob(owner, repo, blob)],
     ),
   );
+
+  deliverCommitChangesMessage(webview, `Committing changes...`);
   const {
     data: { sha: newTreeSha },
   } = await createTree(
@@ -194,7 +215,7 @@ const _proposeChanges = async (
   env.openExternal(Uri.parse(`https://github.com/${owner}/${repo}/compare/${branchName}?expand=1`));
 };
 
-export const proposeChanges = async (
+export const commitChanges = async (
   webview: Optional<Webview>,
   githubRef: Optional<GitHubRef>,
   payload: ProposeChangesPayload,
@@ -202,8 +223,9 @@ export const proposeChanges = async (
   root: Directory,
 ): Promise<void> => {
   try {
-    await _proposeChanges(githubRef, payload, changedFiles, root);
+    await _commitChanges(webview, githubRef, payload, changedFiles, root);
+    deliverCommitChangesResult(webview, true);
   } catch (error) {
-    deliverProposeChangesResult(webview, false, error?.message ?? 'Propose changes failed.');
+    deliverCommitChangesResult(webview, false, error?.message ?? 'Submitting changes failed.');
   }
 };

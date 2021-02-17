@@ -7,4 +7,10 @@
   background: var(--vscode-inputValidation-infoBackground);
   color: var(--vscode-inputValidation-infoForeground);
   border: 1px solid var(--vscode-inputValidation-infoBorder);
+
+  &.warning {
+    background: var(--vscode-inputValidation-warningBackground);
+    color: var(--vscode-inputValidation-warningForeground);
+    border: 1px solid var(--vscode-inputValidation-warningBorder);
+  }
 }

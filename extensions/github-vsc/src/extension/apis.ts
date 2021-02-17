@@ -141,9 +141,9 @@ export const searchCode = (owner: string, repo: string, q: string): SearchReques
 export const getPermission = (
   owner: string,
   repo: string,
-  userContext: UserContext,
+  userContext?: UserContext,
 ): Promise<RestEndpointMethodTypes['repos']['getCollaboratorPermissionLevel']['response']> =>
-  octokit.repos.getCollaboratorPermissionLevel({ owner, repo, username: userContext.login });
+  octokit.repos.getCollaboratorPermissionLevel({ owner, repo, username: userContext?.login ?? '' });
 
 export const createGitRef = (
   owner: string,

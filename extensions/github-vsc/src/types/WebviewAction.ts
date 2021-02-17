@@ -3,8 +3,9 @@ export enum WebviewActionEnum {
   UpdateData = 'UpdateData',
   ValidatePAT = 'ValidatePAT',
   ValidatePATResult = 'ValidatePATResult',
-  ProposeChanges = 'ProposeChanges',
-  ProposeChangesResult = 'ProposeChangesResult',
+  CommitChanges = 'CommitChanges',
+  CommitChangesMessage = 'CommitChangesMessage',
+  CommitChangesResult = 'CommitChangesResult',
 }
 
 export type ProposeChangesPayload = {

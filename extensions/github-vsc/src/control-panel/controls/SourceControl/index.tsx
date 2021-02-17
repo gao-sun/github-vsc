@@ -3,13 +3,15 @@ import Description from '@/components/Description';
 import Tip from '@/components/Tip';
 import Title from '@/components/Title';
 import { CommitMethod, RepoData, UserContext } from '@src/types/foundation';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 
 import styles from './index.module.scss';
 import { vscodeApi } from '@/utils/vscode';
 import WebViewAction, { ProposeChangesPayload, WebviewActionEnum } from '@src/types/WebviewAction';
 import { conditionalString } from '@src/extension/utils/object';
+import { getFileName } from '@/utils/path';
+import useListenMessage from '@/hooks/useListenMessage';
 
 type CommitOption = {
   method: CommitMethod;
@@ -26,13 +28,21 @@ const SourceControl = ({ repoData, userContext }: Props) => {
   const [branchName, setBranchName] = useState('');
   const [commitMessage, setCommitMessage] = useState('');
   const [commitMethod, setCommitMethod] = useState<CommitMethod>(CommitMethod.PR);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState<string>();
 
   const hasWritePermission =
     !!repoData?.permission && !['read', 'triage'].includes(repoData.permission.toLowerCase());
+  const hasToken = !!userContext?.pat;
 
-  useEffect(() => {
+  const updateBranchName = useCallback(() => {
     setBranchName(`${userContext?.login ?? 'github-vsc'}--patch-${dayjs().format(`HHmm`)}`);
   }, [userContext?.login]);
+
+  useEffect(() => {
+    updateBranchName();
+  }, [updateBranchName]);
 
   useEffect(() => {
     if (hasWritePermission) {
@@ -42,15 +52,46 @@ const SourceControl = ({ repoData, userContext }: Props) => {
     }
   }, [hasWritePermission]);
 
-  const propose = () => {
+  useEffect(() => {
+    if (!!repoData?.changedFiles.length) {
+      setCommitMessage(
+        repoData.changedFiles.length > 1
+          ? 'Update files'
+          : `Update ${getFileName(repoData.changedFiles[0])}`,
+      );
+    }
+  }, [repoData?.changedFiles]);
+
+  useListenMessage(({ action, payload }) => {
+    if (action === WebviewActionEnum.CommitChangesResult) {
+      setLoading(false);
+      if (payload.success) {
+        setMessage('Committed sucessfully.');
+        setCommitMessage('');
+        updateBranchName();
+      } else {
+        setError(payload?.message ?? 'Committing changes failed.');
+      }
+    }
+
+    if (action === WebviewActionEnum.CommitChangesMessage) {
+      setMessage(String(payload));
+    }
+  });
+
+  const commit = () => {
     const payload: ProposeChangesPayload = {
       commitMessage,
       branchName,
     };
     const action: WebViewAction = {
-      action: WebviewActionEnum.ProposeChanges,
+      action: WebviewActionEnum.CommitChanges,
       payload: payload,
     };
+
+    setMessage(undefined);
+    setError('');
+    setLoading(true);
 
     vscodeApi.postMessage(action);
   };
@@ -92,13 +133,19 @@ const SourceControl = ({ repoData, userContext }: Props) => {
         </Description>
       )}
       {!!changedFiles.length && (
-        <>
-          <Description>{`You have ${changedFiles.length} changed file${conditionalString(
+        <Description>
+          {`You have ${changedFiles.length} changed file${conditionalString(
             changedFiles.length > 1 && 's',
-          )} on '${ref}'.`}</Description>
+          )} on '${ref}'.`}
+          {!hasToken && ' Setup PAT to commit those changes.'}
+        </Description>
+      )}
+      {hasToken && !!changedFiles.length && (
+        <>
           <div className={styles.subtitle}>Commit Message</div>
           <div className={styles.commit}>
             <input
+              disabled={loading}
               type="text"
               value={commitMessage}
               onChange={({ target: { value } }) => setCommitMessage(value)}
@@ -109,6 +156,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
             {commitOptions.map(({ method, message }) => (
               <div key={method} className={styles.option}>
                 <input
+                  disabled={loading}
                   type="radio"
                   name="change-type"
                   id={`change-type-${method}`}
@@ -128,17 +176,18 @@ const SourceControl = ({ repoData, userContext }: Props) => {
               <div className={styles.subtitle}>Branch Name</div>
               <div className={styles.proposeChange}>
                 <input
+                  disabled={loading}
                   type="text"
                   value={branchName}
                   onChange={({ target: { value } }) => setBranchName(value)}
                 />
-                <Button type="secondary" onClick={propose}>
+                <Button disabled={loading} type="secondary" onClick={commit}>
                   Propose Changes
                 </Button>
               </div>
             </>
           )}
-          {!hasWritePermission && (
+          {!loading && !hasWritePermission && (
             <Tip>
               You’re making changes in a project you don’t have write access to. Submitting a change
               will write it to a new branch in your fork repo, so you can send a pull request.
@@ -149,6 +198,8 @@ const SourceControl = ({ repoData, userContext }: Props) => {
           )}
         </>
       )}
+      {error && <Tip type="warning">{error}</Tip>}
+      {(loading || message) && <Tip>{message ?? 'Submitting...'}</Tip>}
     </div>
   );
 };
