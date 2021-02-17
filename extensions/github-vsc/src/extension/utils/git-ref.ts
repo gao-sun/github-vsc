@@ -13,3 +13,9 @@ export const buildFullRef = (ref: string, type: 'branch' | 'tag'): string => {
 
   return `refs/${type === 'branch' ? 'heads' : 'tags'}/${ref}`;
 };
+
+const prependIfNeeded = (str: string, prefix: string): string =>
+  str.startsWith(prefix) ? str : `${prefix}${str}`;
+
+export const buildRef = (ref: string, type: 'branch' | 'tag'): string =>
+  prependIfNeeded(getShortenRef(ref), type === 'branch' ? 'heads/' : 'tags/');

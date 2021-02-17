@@ -4,6 +4,7 @@ export enum WebviewActionEnum {
   ValidatePAT = 'ValidatePAT',
   ValidatePATResult = 'ValidatePATResult',
   ProposeChanges = 'ProposeChanges',
+  ProposeChangesResult = 'ProposeChangesResult',
 }
 
 export type ProposeChangesPayload = {

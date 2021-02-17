@@ -43,17 +43,17 @@ import {
   showDocumentOrRevealFolderIfNeeded,
 } from './helpers';
 import { replaceLocation } from '../utils/uri-decode';
-import { createBlob, createGitRef, getPermission, getRefSilently, searchCode } from '../apis';
+import { getPermission, searchCode } from '../apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
 import { GitHubRef } from '@src/types/foundation';
-import { postUpdateData, updateRepoData, validatePAT } from './action-handler';
+import { postUpdateData, proposeChanges, updateRepoData, validatePAT } from './action-handler';
 import { getVSCodeData } from '../utils/global-state';
 import { showGlobalSearchLimitationInfo, showGlobalSearchAPIInfo } from './message';
-import WebviewAction, { ProposeChangesPayload, WebviewActionEnum } from '@src/types/WebviewAction';
-import { buildFullRef, getShortenRef } from '../utils/git-ref';
+import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
+import { getShortenRef } from '../utils/git-ref';
 
 export class GitHubFS
   implements
@@ -165,36 +165,7 @@ export class GitHubFS
     }
 
     if (action === WebviewActionEnum.ProposeChanges) {
-      if (!this.githubRef) {
-        return;
-      }
-
-      const githubRef = this.githubRef;
-      const { commitMessage, branchName } = payload as ProposeChangesPayload;
-      const branchFullRef = buildFullRef(branchName, 'branch');
-      const { owner, repo, ref } = githubRef;
-      const [matchedRef, matchedBranch] = await Promise.all([
-        // use get ref here
-        getRefSilently({ owner, repo, ref }, 'branch'),
-        getRefSilently({ owner, repo, ref: branchName }, 'branch'),
-      ]);
-
-      if (!matchedRef) {
-        return;
-      }
-
-      if (matchedBranch?.ref === branchFullRef) {
-        return;
-      }
-
-      const { data } = await createGitRef(owner, repo, branchFullRef, matchedRef.object.sha);
-      const blobs = await Promise.all(
-        this.ghfsSCM.getChangedFiles().map((uri) => lookupAsFile(this.root, { ...githubRef, uri })),
-      );
-      const uploadResults = await Promise.all(
-        blobs.map(([, blob]) => createBlob(owner, repo, blob)),
-      );
-      console.log('???', uploadResults);
+      proposeChanges(webview, this.githubRef, payload, this.ghfsSCM.getChangedFiles(), this.root);
     }
 
     if (action === WebviewActionEnum.RequestData) {

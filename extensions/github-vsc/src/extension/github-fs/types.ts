@@ -83,3 +83,10 @@ export enum GitFileType {
   Tree = 'tree',
   Commit = 'commit',
 }
+
+export type GitHubTreeItem = {
+  path: string;
+  mode: GitFileMode;
+  type: GitFileType;
+  sha: string;
+};

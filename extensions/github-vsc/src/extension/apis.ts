@@ -3,8 +3,15 @@ import { OctokitResponse } from '@octokit/types';
 import { GitHubRef, UserContext } from '@src/types/foundation';
 import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
-import { Directory, Entry, File, GitFileMode, GitHubLocation } from './github-fs/types';
-import { getShortenRef } from './utils/git-ref';
+import {
+  Directory,
+  Entry,
+  File,
+  GitFileMode,
+  GitHubLocation,
+  GitHubTreeItem,
+} from './github-fs/types';
+import { buildRef } from './utils/git-ref';
 
 let octokit = new Octokit();
 
@@ -84,9 +91,6 @@ export const getRepo = (
 ): Promise<RestEndpointMethodTypes['repos']['get']['response']> =>
   octokit.repos.get({ owner, repo });
 
-const prependIfNeeded = (str: string, prefix: string): string =>
-  str.startsWith(prefix) ? str : `${prefix}${str}`;
-
 export const getMatchingRef = (
   { owner, repo, ref }: Omit<GitHubRef, 'sha'>,
   type: 'branch' | 'tag',
@@ -94,7 +98,7 @@ export const getMatchingRef = (
   octokit.git.listMatchingRefs({
     owner,
     repo,
-    ref: prependIfNeeded(getShortenRef(ref), type === 'branch' ? 'heads/' : 'tags/'),
+    ref: buildRef(ref, type),
   });
 
 export const getRef = (
@@ -104,7 +108,7 @@ export const getRef = (
   octokit.git.getRef({
     owner,
     repo,
-    ref: prependIfNeeded(getShortenRef(ref), type === 'branch' ? 'heads/' : 'tags/'),
+    ref: buildRef(ref, type),
   });
 
 export const getRefSilently = async (
@@ -115,7 +119,7 @@ export const getRefSilently = async (
     const { data } = await octokit.git.getRef({
       owner,
       repo,
-      ref: prependIfNeeded(getShortenRef(ref), type === 'branch' ? 'heads/' : 'tags/'),
+      ref: buildRef(ref, type),
     });
     return data;
   } catch {}
@@ -149,9 +153,40 @@ export const createGitRef = (
 ): Promise<RestEndpointMethodTypes['git']['createRef']['response']> =>
   octokit.git.createRef({ owner, repo, ref, sha });
 
+export const updateGitRef = (
+  owner: string,
+  repo: string,
+  ref: string,
+  sha: string,
+): Promise<RestEndpointMethodTypes['git']['updateRef']['response']> =>
+  octokit.git.updateRef({ owner, repo, ref, sha });
+
 export const createBlob = (
   owner: string,
   repo: string,
   content: Uint8Array,
 ): Promise<RestEndpointMethodTypes['git']['createBlob']['response']> =>
   octokit.git.createBlob({ owner, repo, content: Buffer.from(content).toString('utf-8') });
+
+export const createTree = (
+  owner: string,
+  repo: string,
+  baseRef: string,
+  tree: GitHubTreeItem[],
+): Promise<RestEndpointMethodTypes['git']['createTree']['response']> =>
+  octokit.git.createTree({ owner, repo, base_tree: baseRef, tree });
+
+export const createCommit = (
+  owner: string,
+  repo: string,
+  message: string,
+  tree: string,
+  parents: string | string[],
+): Promise<RestEndpointMethodTypes['git']['createCommit']['response']> =>
+  octokit.git.createCommit({
+    owner,
+    repo,
+    message,
+    tree,
+    parents: Array.isArray(parents) ? parents : [parents],
+  });

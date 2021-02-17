@@ -17,6 +17,7 @@ export type Props = {
 
 const SourceControl = ({ repoData, userContext }: Props) => {
   const [branchName, setBranchName] = useState('');
+  const [commitMessage, setCommitMessage] = useState('');
 
   useEffect(() => {
     setBranchName(`${userContext?.login ?? 'github-vsc'}--patch-${dayjs().format(`HHmm`)}`);
@@ -27,7 +28,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
 
   const propose = () => {
     const payload: ProposeChangesPayload = {
-      commitMessage: '',
+      commitMessage,
       branchName,
     };
     const action: WebViewAction = {
@@ -53,7 +54,11 @@ const SourceControl = ({ repoData, userContext }: Props) => {
       <Description>You have no changed files on '{ref}'.</Description>
       <div className={styles.subtitle}>Commit Message</div>
       <div className={styles.commit}>
-        <input type="text" />
+        <input
+          type="text"
+          value={commitMessage}
+          onChange={({ target: { value } }) => setCommitMessage(value)}
+        />
       </div>
       <div className={styles.subtitle}>Branch Name</div>
       <div className={styles.proposeChange}>
