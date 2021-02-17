@@ -57,6 +57,11 @@ export class GHFSSourceControl implements QuickDiffProvider, Disposable {
     this.updateState();
   }
 
+  removeAllChangedFiles(): void {
+    this.changedGroup.resourceStates = [];
+    this.updateState();
+  }
+
   getChangedFiles(): Uri[] {
     return this.changedGroup.resourceStates.map(({ resourceUri }) => resourceUri);
   }

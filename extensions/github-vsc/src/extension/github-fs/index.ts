@@ -95,6 +95,11 @@ export class GitHubFS
 
   private reopen(name: string) {
     reopenFolder(name);
+    // update decorations
+    this.ghfsSCM
+      .getChangedFiles()
+      .forEach((uri) => this._fireSoon({ type: FileChangeType.Changed, uri }));
+    this.ghfsSCM.removeAllChangedFiles();
     this.updateBroswerUrl();
   }
 
@@ -344,8 +349,19 @@ export class GitHubFS
     const defaultBranch = this.defaultBranch;
 
     if (!ref || !this.isOnDefaultBranch()) {
-      showGlobalSearchLimitationInfo(defaultBranch, () => {
+      showGlobalSearchLimitationInfo(defaultBranch, async () => {
         if (defaultBranch && this.githubRef) {
+          if (this.ghfsSCM.getChangedFiles().length > 0) {
+            const choose = await vsCodeWindow.showWarningMessage(
+              'Switching branch will discard uncommitted changes.',
+              { modal: true },
+              'OK',
+            );
+
+            if (choose !== 'OK') {
+              return;
+            }
+          }
           this.switchTo({ ...this.githubRef, ref: defaultBranch, uri: GitHubFS.rootUri });
         }
       });

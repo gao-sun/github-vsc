@@ -6,7 +6,7 @@ let hasGlobalSearchLimitationInfoShown = false;
 
 export const showGlobalSearchLimitationInfo = async (
   defaultBranch: Optional<string>,
-  onSwitchBranch: () => void,
+  onSwitchBranch: () => void | Promise<void>,
 ): Promise<void> => {
   if (hasGlobalSearchLimitationInfoShown) {
     return;
