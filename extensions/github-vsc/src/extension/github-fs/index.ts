@@ -114,10 +114,12 @@ export class GitHubFS
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
         ref: this.githubRef,
         permission: data.permission,
+        changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     } catch {
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
         ref: this.githubRef,
+        changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     }
   }
@@ -285,6 +287,7 @@ export class GitHubFS
         } else {
           this.ghfsSCM.removeChangedFile(uri);
         }
+        this.updateRepoData();
       });
       this._fireSoon({ type: FileChangeType.Changed, uri });
     } catch {

@@ -1,3 +1,5 @@
+import { Uri } from 'vscode';
+
 export type GitHubRef = {
   owner: string;
   repo: string;
@@ -14,9 +16,16 @@ export type UserContext = {
 export type RepoData = {
   ref?: GitHubRef;
   permission?: string;
+  changedFiles: Uri[];
 };
 
 export type VSCodeData = {
   userContext?: UserContext;
   repoData?: RepoData;
 };
+
+export enum CommitMethod {
+  Commit = 'commit',
+  PR = 'pr',
+  Fork = 'fork',
+}
