@@ -52,9 +52,12 @@ if (fs.existsSync('../dist')) {
 fs.mkdirSync('../dist');
 fse.copySync('out-vscode-min', '../dist/vscode');
 
-const extensionNM = glob.sync('extensions/**/node_modules', {});
-extensionNM.forEach((modules) => {
-  rmdir.sync(modules, { recursive: true });
+const extensionFilesToRemove = [
+  ...glob.sync('extensions/**/node_modules', {}),
+  ...glob.sync('extensions/**/*.map', {}),
+];
+extensionFilesToRemove.forEach((path) => {
+  rmdir.sync(path, { recursive: true });
 });
 fse.copySync('extensions', '../dist/extensions');
 

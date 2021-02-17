@@ -2,15 +2,6 @@ const fs = require('fs');
 const fse = require('fs-extra');
 const debounce = require('debounce-fn');
 
-if (fs.existsSync(`./app/dist/extensions/github-vsc`)) {
-  fs.rmdirSync(`./app/dist/extensions/github-vsc`, { recursive: true });
-}
-
-fse.copySync('./extensions/github-vsc', './app/dist/extensions/github-vsc', {
-  overwrite: true,
-  filter: (src) => !src.includes('node_modules'),
-});
-
 fs.watch('./extensions/github-vsc/static', () => {
   console.log('syncing static');
   fse.copySync('./extensions/github-vsc/static', './app/dist/extensions/github-vsc/static', {

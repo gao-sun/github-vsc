@@ -8,8 +8,9 @@
   "scripts": {
     "build-vsc": "node build-vsc.js",
     "prepare-all": "node prepare-vsc.js && node prepare-extensions.js",
-    "sync": "node sync-extensions.js",
+    "sync": "node copy-extension.js && node sync-extensions.js",
     "dev-extension": "cd ./extensions/github-vsc && yarn watch",
+    "package-extension": "cd ./extensions/github-vsc && rm -rf ./dist && yarn package",
     "dev": "concurrently -p \"[{index}] {time}\" -t \"HH:mm:ss\" \"node debug-server.js\" \"yarn sync\" \"yarn dev-extension\""
   },
   "devDependencies": {
