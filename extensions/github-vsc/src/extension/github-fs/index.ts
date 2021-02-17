@@ -98,7 +98,7 @@ export class GitHubFS
     this.updateBroswerUrl();
   }
 
-  private async updateRepoData() {
+  private async updateRepoData(fetchPermission = true) {
     const vsCodeData = await getVSCodeData(this.extensionContext);
 
     if (!this.githubRef) {
@@ -109,11 +109,13 @@ export class GitHubFS
     const { owner, repo } = this.githubRef;
 
     try {
-      const { data } = await getPermission(owner, repo, vsCodeData?.userContext);
+      const permission = fetchPermission
+        ? (await getPermission(owner, repo, vsCodeData?.userContext)).data.permission
+        : vsCodeData?.repoData?.permission;
 
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
         ref: this.githubRef,
-        permission: data.permission,
+        permission,
         changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     } catch {
@@ -287,7 +289,7 @@ export class GitHubFS
         } else {
           this.ghfsSCM.removeChangedFile(uri);
         }
-        this.updateRepoData();
+        this.updateRepoData(false);
       });
       this._fireSoon({ type: FileChangeType.Changed, uri });
     } catch {

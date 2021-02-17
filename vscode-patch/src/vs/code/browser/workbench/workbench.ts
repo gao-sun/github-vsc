@@ -1,6 +1,6 @@
 import { create, IWorkbenchConstructionOptions, IWorkspaceProvider } from 'vs/workbench/workbench.web.api';
 import { URI, UriComponents } from 'vs/base/common/uri';
-declare const window: any;
+declare const window: Window & { product: any };
 
 (async function () {
 	// create workbench
@@ -12,7 +12,6 @@ declare const window: any;
 		const result = await fetch('/product.json');
 		config = await result.json();
 	}
-
 
 	if (Array.isArray(config.staticExtensions)) {
 		config.staticExtensions.forEach(extension => {
@@ -29,6 +28,10 @@ declare const window: any;
 		workspace = undefined;
 	}
 
+	/**
+	 * Note: arguments and return type should be serializable so that they can
+	 * be exchanged across processes boundaries.
+	 */
 	const locationCommands = [
 		{
 			id: 'github-vsc.location.fetch',

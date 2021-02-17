@@ -30,8 +30,9 @@ export class GHFSSourceControl implements QuickDiffProvider, Disposable {
   }
 
   // MARK: private funcs
-  private updateInputBoxVisibility() {
-    this.scm.inputBox.visible = this.changedGroup.resourceStates.length > 0;
+  private updateState() {
+    const hasChangedFile = this.changedGroup.resourceStates.length > 0;
+    this.scm.inputBox.visible = hasChangedFile;
   }
 
   // MARK: class funcs
@@ -46,14 +47,14 @@ export class GHFSSourceControl implements QuickDiffProvider, Disposable {
         command: { title: 'Open', command: 'vscode.open', arguments: [uri] },
       });
     }
-    this.updateInputBoxVisibility();
+    this.updateState();
   }
 
   removeChangedFile(uri: Uri): void {
     this.changedGroup.resourceStates = this.changedGroup.resourceStates.filter(
       ({ resourceUri }) => resourceUri.toString() !== uri.toString(),
     );
-    this.updateInputBoxVisibility();
+    this.updateState();
   }
 
   getChangedFiles(): Uri[] {

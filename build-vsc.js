@@ -39,12 +39,6 @@ child_process.execSync('yarn gulp compile-build', { stdio: 'inherit' });
 child_process.execSync('yarn gulp minify-vscode', { stdio: 'inherit' });
 child_process.execSync('yarn compile-web', { stdio: 'inherit' });
 
-// Remove maps
-const mapFiles = glob.sync('out-vscode-min/**/*.js.map', {});
-mapFiles.forEach((mapFile) => {
-  fs.unlinkSync(mapFile);
-});
-
 // Extract compiled files
 if (fs.existsSync('../dist')) {
   fs.rmdirSync('../dist', { recursive: true });
