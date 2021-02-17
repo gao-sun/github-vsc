@@ -190,3 +190,19 @@ export const createCommit = (
     tree,
     parents: Array.isArray(parents) ? parents : [parents],
   });
+
+export const createFork = (
+  owner: string,
+  repo: string,
+  // by design. original type def is wrong
+): Promise<RestEndpointMethodTypes['repos']['createForAuthenticatedUser']['response']> =>
+  octokit.repos.createFork({ owner, repo });
+
+export const isForkReady = async (owner: string, repo: string): Promise<boolean> => {
+  try {
+    await octokit.repos.listCommits({ owner, repo, per_page: 1 });
+  } catch {
+    return false;
+  }
+  return true;
+};

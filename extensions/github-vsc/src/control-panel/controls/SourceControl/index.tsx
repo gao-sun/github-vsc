@@ -35,6 +35,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
   const hasWritePermission =
     !!repoData?.permission && !['read', 'triage'].includes(repoData.permission.toLowerCase());
   const hasToken = !!userContext?.pat;
+  const isShowingMessage = !!(loading || message || error);
 
   const updateBranchName = useCallback(() => {
     setBranchName(`${userContext?.login ?? 'github-vsc'}--patch-${dayjs().format(`HHmm`)}`);
@@ -67,8 +68,6 @@ const SourceControl = ({ repoData, userContext }: Props) => {
       setLoading(false);
       if (payload.success) {
         setMessage('Committed sucessfully.');
-        setCommitMessage('');
-        updateBranchName();
       } else {
         setError(payload?.message ?? 'Committing changes failed.');
       }
@@ -83,6 +82,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
     const payload: ProposeChangesPayload = {
       commitMessage,
       branchName,
+      commitMethod,
     };
     const action: WebViewAction = {
       action: WebviewActionEnum.CommitChanges,
@@ -187,7 +187,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
               </div>
             </>
           )}
-          {!loading && !hasWritePermission && (
+          {!isShowingMessage && !hasWritePermission && (
             <Tip>
               You’re making changes in a project you don’t have write access to. Submitting a change
               will write it to a new branch in your fork repo, so you can send a pull request.
@@ -199,7 +199,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
         </>
       )}
       {error && <Tip type="warning">{error}</Tip>}
-      {(loading || message) && <Tip>{message ?? 'Submitting...'}</Tip>}
+      {(loading || message) && !error && <Tip>{message ?? 'Submitting...'}</Tip>}
     </div>
   );
 };

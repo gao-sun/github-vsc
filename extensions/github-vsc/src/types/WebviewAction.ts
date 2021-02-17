@@ -1,3 +1,5 @@
+import { CommitMethod } from './foundation';
+
 export enum WebviewActionEnum {
   RequestData = 'RequestData',
   UpdateData = 'UpdateData',
@@ -9,6 +11,7 @@ export enum WebviewActionEnum {
 }
 
 export type ProposeChangesPayload = {
+  commitMethod: CommitMethod;
   commitMessage: string;
   branchName: string;
 };

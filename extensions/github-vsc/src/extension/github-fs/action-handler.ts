@@ -4,17 +4,21 @@ import { setPartialVSCodeData } from '../utils/global-state';
 import {
   createBlob,
   createCommit,
+  createFork,
   createGitRef,
   createTree,
   getRefSilently,
+  isForkReady,
   updateAPIAuth,
   updateGitRef,
 } from '../apis';
-import { GitHubRef, RepoData, UserContext, VSCodeData } from '@src/types/foundation';
+import { CommitMethod, GitHubRef, RepoData, UserContext, VSCodeData } from '@src/types/foundation';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
-import { buildFullRef, buildRef } from '../utils/git-ref';
+import { buildFullRef, buildRef, getShortenRef } from '../utils/git-ref';
 import { lookupAsFile } from './lookup';
 import { Directory, File, GitFileType } from './types';
+import dayjs from 'dayjs';
+import { wait } from '../utils/wait';
 
 export const postAction = async (
   webview: Optional<Webview>,
@@ -141,6 +145,36 @@ const deliverCommitChangesMessage = async (
   });
 };
 
+const getCommitRepo = async (
+  webview: Optional<Webview>,
+  commitMethod: CommitMethod,
+  owner: string,
+  repo: string,
+) => {
+  if (commitMethod !== CommitMethod.Fork) {
+    return [owner, repo];
+  }
+
+  deliverCommitChangesMessage(webview, `Forking ${owner}/${repo}...`);
+  const {
+    data: { full_name },
+  } = await createFork(owner, repo);
+  const [forkOwner, forkRepo] = full_name.split('/');
+
+  const startTime = dayjs();
+
+  while (!(await isForkReady(forkOwner, forkRepo))) {
+    if (dayjs().diff(startTime, 'seconds') >= 30) {
+      throw new Error(
+        `Forking ${owner}/${repo} took too long. Please contact GitHub support if needed.`,
+      );
+    }
+    await wait(1000);
+  }
+
+  return [forkOwner, forkRepo];
+};
+
 const _commitChanges = async (
   webview: Optional<Webview>,
   githubRef: Optional<GitHubRef>,
@@ -159,16 +193,23 @@ const _commitChanges = async (
   }
 
   const branchFullRef = buildFullRef(branchName, 'branch');
-  const { owner, repo, ref } = githubRef;
+  const { owner: originalOwner, repo: originalRepo, ref } = githubRef;
+  const [owner, repo] = await getCommitRepo(
+    webview,
+    payload.commitMethod,
+    originalOwner,
+    originalRepo,
+  );
+
   const [matchedRef, matchedBranch] = await Promise.all([
     // use get ref here
-    getRefSilently({ owner, repo, ref }, 'branch'),
+    getRefSilently({ owner: originalOwner, repo: originalRepo, ref }, 'branch'),
     getRefSilently({ owner, repo, ref: branchName }, 'branch'),
   ]);
 
   if (!matchedRef) {
     throw new Error(
-      `No matching ref on '${ref}', it could be already deleted, or you do not have the access to.`,
+      `No matching ref '${ref}' in ${originalOwner}/${originalRepo}, it could be already deleted, or you do not have the access to.`,
     );
   }
 
@@ -212,7 +253,21 @@ const _commitChanges = async (
 
   await updateGitRef(owner, repo, buildRef(branchName, 'branch'), sha);
 
-  env.openExternal(Uri.parse(`https://github.com/${owner}/${repo}/compare/${branchName}?expand=1`));
+  if (payload.commitMethod === CommitMethod.PR) {
+    env.openExternal(
+      Uri.parse(`https://github.com/${owner}/${repo}/compare/${branchName}?expand=1`),
+    );
+  }
+
+  if (payload.commitMethod === CommitMethod.Fork) {
+    env.openExternal(
+      Uri.parse(
+        `https://github.com/${originalOwner}/${originalRepo}/compare/${getShortenRef(
+          ref,
+        )}...${owner}:${branchName}?expand=1`,
+      ),
+    );
+  }
 };
 
 export const commitChanges = async (
