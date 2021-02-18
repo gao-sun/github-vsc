@@ -145,7 +145,14 @@ export class GitHubFS
       this.defaultBranch = defaultBranch;
 
       if (!urlLocation) {
-        return showNoLocationWarning();
+        return showNoLocationWarning(() =>
+          this.switchTo({
+            owner: 'gao-sun',
+            repo: 'github-vsc',
+            ref: 'master',
+            uri: Uri.joinPath(GitHubFS.rootUri, 'README.md'),
+          }),
+        );
       }
 
       if (!defaultBranch) {

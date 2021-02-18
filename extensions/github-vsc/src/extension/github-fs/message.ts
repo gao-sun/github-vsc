@@ -61,12 +61,17 @@ export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promis
   }
 };
 
-export const showNoLocationWarning = async (): Promise<void> => {
+export const showNoLocationWarning = async (onDemo: () => void): Promise<void> => {
   const choose = await vsCodeWindow.showInformationMessage(
-    "It looks like there's no owner/repo info in the URL. Go to the Github VSC homepage for more information.",
+    "It looks like there's no owner/repo info in the URL. Go to the GitHub VSC homepage for more information.",
     { modal: true },
+    'See Demo',
     'Open Homepage',
   );
+
+  if (choose === 'See Demo') {
+    onDemo();
+  }
 
   if (choose === 'Open Homepage') {
     env.openExternal(Uri.parse('https://github.com/gao-sun/github-vsc'));
