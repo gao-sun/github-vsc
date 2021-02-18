@@ -92,3 +92,14 @@ export const showNoDefaultBranchWarning = async ({
     openControlPanel();
   }
 };
+
+export const showWelcomeInfo = async (): Promise<void> => {
+  const choose = await vsCodeWindow.showInformationMessage(
+    'GitHub VSC is an open-source project which is NOT created by GitHub nor Microsoft. Go to the homepage for more information.',
+    'Open Homepage',
+  );
+
+  if (choose === 'Open Homepage') {
+    env.openExternal(Uri.parse('https://github.com/gao-sun/github-vsc'));
+  }
+};
