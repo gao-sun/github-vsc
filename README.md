@@ -43,6 +43,10 @@ Also, the global text search result has NO pagination yet. (It always shows page
 
 ## Engineering
 
+### It's Static
+
+GitHub VSC contains only static assets and it's hosted by GitHub Pages. The deployment is in [github-vsc-website](https://github.com/gao-sun/github-vsc-website).
+
 ### VSCode in Web
 
 Powered by the [Code - OSS](https://github.com/microsoft/vscode) project, and use the tag `1.53.2` for building. Would like not to do any modifications to keep it clean, but here comes to the result (I've tried hard, trust me):
