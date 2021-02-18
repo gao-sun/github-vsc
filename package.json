@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "build-vsc": "node build-vsc.js && node prepare-vsc.js",
-    "build-extension": "yarn prepare-extension && cd ./extensions/github-vsc && rm -rf ./dist && yarn package",
+    "build-extension": "yarn prepare-extension && cd ./extensions/github-vsc && rm -rf ./dist && yarn package && node copy-extension.js",
     "build-all": "yarn build-vsc && yarn build-extension",
     "prepare-extension": "node prepare-extensions.js",
     "sync": "node copy-extension.js && node sync-extensions.js",
