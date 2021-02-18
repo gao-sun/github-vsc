@@ -46,11 +46,19 @@ export const getEntries = (location: GitHubLocation, sha: string): Promise<Entry
 };
 
 export const getData = async (
-  location: GitHubLocation,
+  owner: string,
+  repo: string,
   sha: string,
   alwaysOriginal = false,
 ): Promise<Uint8Array> =>
-  get(sha, () => readBlob(location, sha), cachedData, cachedDataPromise, dirtyData, alwaysOriginal);
+  get(
+    sha,
+    () => readBlob(owner, repo, sha),
+    cachedData,
+    cachedDataPromise,
+    dirtyData,
+    alwaysOriginal,
+  );
 
 export const isDataDirtyWithoutFetching = async (sha: string): Promise<boolean> => {
   const original = cachedData[sha];

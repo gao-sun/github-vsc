@@ -60,7 +60,12 @@ export const lookup = async (
   if (entry instanceof File) {
     return [
       entry,
-      await getData(location, entry.sha, location.uri.query.includes(LOOKUP_ORIGINAL_KEY)),
+      await getData(
+        location.owner,
+        location.repo,
+        entry.sha,
+        location.uri.query.includes(LOOKUP_ORIGINAL_KEY),
+      ),
     ];
   }
 

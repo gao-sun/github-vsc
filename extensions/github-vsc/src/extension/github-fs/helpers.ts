@@ -2,6 +2,7 @@ import { GitHubRef } from '@src/types/foundation';
 import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch } from 'vscode';
 import { GitHubFS } from '.';
 import { SearchResponse } from '../apis';
+import { getData } from './getter';
 import { lookup } from './lookup';
 import { Directory, File, GitHubLocation } from './types';
 
@@ -54,36 +55,51 @@ const getRange = (str: string, match: string): [number, number] => {
 };
 
 export const convertGitHubSearchResponseToSearchResult = (
+  owner: string,
+  repo: string,
   data: SearchResponse,
-): TextSearchMatch[] =>
-  data.items.map(({ text_matches, path }) => {
-    const organizedMatches = text_matches
-      .filter(({ matches }) => !!matches[0])
-      .map(({ fragment, matches }, index) => {
-        const [start, end] = matches[0].indices;
-        const parsedFragment = fragment
-          .slice(
-            firstNewLineBeforeIndex(fragment, start) + 1,
-            firstNewLineAfterIndex(fragment, end),
-          )
-          .replace(/(\r\n|\r|\n)/g, ' ');
-        const parsedMatchText = matches[0].text.replace(/(\r\n|\r|\n)/g, ' ');
-        const [matchStart, matchEnd] = getRange(parsedFragment, parsedMatchText);
+): Promise<TextSearchMatch[]> =>
+  Promise.all(
+    data.items.map(async ({ text_matches, path, sha }) => {
+      const organizedMatches = text_matches
+        .filter(({ matches }) => !!matches[0])
+        .map(({ fragment, matches }, index) => {
+          const [start, end] = matches[0].indices;
+          const parsedFragment = fragment
+            .slice(
+              firstNewLineBeforeIndex(fragment, start) + 1,
+              firstNewLineAfterIndex(fragment, end),
+            )
+            .replace(/(\r\n|\r|\n)/g, ' ');
+          const { text: matchedText } = matches[0];
+          const [matchStart, matchEnd] = getRange(parsedFragment, matchedText);
 
-        return {
-          fragment: parsedFragment,
-          match: new Range(index, matchStart, index, matchEnd),
-        };
-      });
+          return {
+            fragment: parsedFragment,
+            match: new Range(index, matchStart, index, matchEnd),
+            matchedText,
+          };
+        });
 
-    return {
-      uri: Uri.joinPath(GitHubFS.rootUri, path),
       // kind of tricky here since GitHub doesn't return detailed match location
-      // maybe provide an option to turn on precise jumping?
-      ranges: organizedMatches.map((_, index) => new Range(index, 0, index, 0)),
-      preview: {
-        text: organizedMatches.map(({ fragment }) => fragment).join('\n'),
-        matches: organizedMatches.map(({ match }) => match),
-      },
-    };
-  });
+      // maybe provide an option to switch precise jumping?
+
+      const content = (await getData(owner, repo, sha, true)).toString().split(/[\r\n]+/);
+
+      return {
+        uri: Uri.joinPath(GitHubFS.rootUri, path),
+        ranges: organizedMatches.map(({ matchedText }) => {
+          const foundIndex = content.findIndex((line) => line.includes(matchedText));
+          if (foundIndex > -1) {
+            const index = content[foundIndex].indexOf(matchedText);
+            return new Range(foundIndex, index, foundIndex, index + matchedText.length);
+          }
+          return new Range(0, 0, 0, 0);
+        }),
+        preview: {
+          text: organizedMatches.map(({ fragment }) => fragment).join('\n'),
+          matches: organizedMatches.map(({ match }) => match),
+        },
+      };
+    }),
+  );

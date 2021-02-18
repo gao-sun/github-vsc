@@ -386,7 +386,9 @@ export class GitHubFS
 
     try {
       const { data } = await searchCode(ref.owner, ref.repo, query.pattern);
-      convertGitHubSearchResponseToSearchResult(data).forEach((match) => progress.report(match));
+      (
+        await convertGitHubSearchResponseToSearchResult(ref.owner, ref.repo, data)
+      ).forEach((match) => progress.report(match));
     } catch (error) {
       vsCodeWindow.showWarningMessage(error?.message ?? 'Endpoint responded with error.');
     }

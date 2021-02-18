@@ -68,10 +68,7 @@ export const readTree = async ({ owner, repo, ref, uri }: GitHubLocation): Promi
   return [];
 };
 
-export const readBlob = async (
-  { owner, repo }: GitHubLocation,
-  sha: string,
-): Promise<Uint8Array> => {
+export const readBlob = async (owner: string, repo: string, sha: string): Promise<Uint8Array> => {
   const { data } = await octokit.git.getBlob({
     owner,
     repo,
