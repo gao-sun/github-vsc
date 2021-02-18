@@ -1,5 +1,7 @@
 import { create, IWorkbenchConstructionOptions, IWorkspaceProvider } from 'vs/workbench/workbench.web.api';
 import { URI, UriComponents } from 'vs/base/common/uri';
+import theme from './one_dark';
+
 declare const window: Window & { product: any };
 
 (async function () {
@@ -56,5 +58,15 @@ declare const window: Window & { product: any };
 		config = { ...config, workspaceProvider };
 	}
 
-	create(document.body, { ...config, commands: [...(config.commands ?? []), ...locationCommands] });
+	create(document.body, {
+		configurationDefaults: {
+			'workbench.colorTheme': 'Default Dark+',
+			'workbench.colorCustomizations': theme.colors,
+			'editor.tokenColorCustomizations': {
+				textMateRules: theme.tokenColors,
+			}
+		},
+		...config,
+		commands: [...(config.commands ?? []), ...locationCommands]
+	});
 })();

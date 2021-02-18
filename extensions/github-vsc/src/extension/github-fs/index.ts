@@ -93,7 +93,8 @@ export class GitHubFS
     return ref === defaultBranch || getShortenRef(ref) === defaultBranch;
   }
 
-  private reopen(name: string) {
+  private reopen(name: string, ref?: GitHubRef) {
+    this.githubRef = ref;
     reopenFolder(name);
     // update decorations
     this.ghfsSCM
@@ -101,6 +102,7 @@ export class GitHubFS
       .forEach((uri) => this._fireSoon({ type: FileChangeType.Changed, uri }));
     this.ghfsSCM.removeAllChangedFiles();
     this.updateBroswerUrl();
+    this.updateRepoData();
   }
 
   private async updateRepoData(fetchPermission = true) {
@@ -136,16 +138,12 @@ export class GitHubFS
     this.root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
 
     if (!location) {
-      this.githubRef = undefined;
-      this.reopen(description);
-      this.updateRepoData();
+      this.reopen(description, undefined);
       return;
     }
 
     const { uri: _, ...githubRef } = location;
-    this.githubRef = githubRef;
-    this.reopen(description);
-    this.updateRepoData();
+    this.reopen(description, githubRef);
     showDocumentOrRevealFolderIfNeeded(this.root, location);
   }
 

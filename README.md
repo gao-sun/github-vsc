@@ -14,6 +14,12 @@ E.g. `github.com/gao-sun/eul` -> `github-vsc.com/gao-sun/eul`
 - Global text search support (on the default branch)
 - Document editing with GitHub commits (fork/commit/pull request)
 
+## Limitations
+
+-
+
 ## Credits
 
 Heavily inspired by [github1s](https://github.com/conwnet/github1s), edited vscode compiling part from [vscode-web](https://github.com/Felx-B/vscode-web), and derivated FileSystem implementation from [vscode-web-playground](https://github.com/microsoft/vscode-web-playground).
+
+Also the beautiful One Dark theme exported from [vscode-theme-onedark](https://github.com/akamud/vscode-theme-onedark).
