@@ -63,7 +63,7 @@ export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promis
 
 export const showNoLocationWarning = async (): Promise<void> => {
   const choose = await vsCodeWindow.showInformationMessage(
-    "It looks like there' no owner/repo info in the URL. Go to the Github VSC homepage for more information.",
+    "It looks like there's no owner/repo info in the URL. Go to the Github VSC homepage for more information.",
     { modal: true },
     'Open Homepage',
   );
