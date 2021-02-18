@@ -42,7 +42,7 @@ import {
   getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
 } from './helpers';
-import { replaceLocation } from '../utils/uri-decode';
+import { decodePathAsGitHubLocation, replaceLocation } from '../utils/uri-decode';
 import { getPermission, searchCode } from '../apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
@@ -51,7 +51,12 @@ import { isDataDirtyWithoutFetching } from './getter';
 import { GitHubRef } from '@src/types/foundation';
 import { postUpdateData, commitChanges, updateRepoData, validatePAT } from './action-handler';
 import { getVSCodeData } from '../utils/global-state';
-import { showGlobalSearchLimitationInfo, showGlobalSearchAPIInfo } from './message';
+import {
+  showGlobalSearchLimitationInfo,
+  showGlobalSearchAPIInfo,
+  showNoLocationWarning,
+  showNoDefaultBranchWarning,
+} from './message';
 import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
 import { getShortenRef } from '../utils/git-ref';
 
@@ -70,8 +75,8 @@ export class GitHubFS
   private root = new Directory(GitHubFS.rootUri, '', '', GitFileMode.Tree);
   private githubRef?: GitHubRef;
   private controlPanelView: ControlPanelView;
+  private defaultBranch?: string;
   readonly extensionContext: ExtensionContext;
-  readonly defaultBranch?: string;
 
   // MARK: fs helpers
   private getLocation(uri: Uri): Optional<GitHubLocation> {
@@ -133,7 +138,23 @@ export class GitHubFS
     }
   }
 
-  private switchTo(location?: GitHubLocation) {
+  private async switchTo(location?: GitHubLocation): Promise<void> {
+    // get from browser URL
+    if (!location) {
+      const [urlLocation, defaultBranch] = await decodePathAsGitHubLocation();
+      this.defaultBranch = defaultBranch;
+
+      if (!urlLocation) {
+        return showNoLocationWarning();
+      }
+
+      if (!defaultBranch) {
+        return showNoDefaultBranchWarning(urlLocation);
+      }
+
+      return this.switchTo(urlLocation);
+    }
+
     const description = getGitHubRefDescription(location);
     this.root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
 
@@ -160,7 +181,7 @@ export class GitHubFS
 
   // MARK: webview action handler
   private onDataUpdated() {
-    this.updateRepoData();
+    this.switchTo();
   }
 
   private async actionHandler({ action, payload }: WebviewAction) {
@@ -183,13 +204,8 @@ export class GitHubFS
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(
-    extensionContext: ExtensionContext,
-    location?: GitHubLocation,
-    defaultBranch?: string,
-  ) {
+  constructor(extensionContext: ExtensionContext) {
     this.extensionContext = extensionContext;
-    this.defaultBranch = defaultBranch;
     this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
     this.controlPanelView = new ControlPanelView(extensionContext, (action) =>
       this.actionHandler(action),
@@ -207,7 +223,7 @@ export class GitHubFS
       this.ghfsSCM,
     );
 
-    this.switchTo(location);
+    this.switchTo();
   }
 
   dispose(): void {

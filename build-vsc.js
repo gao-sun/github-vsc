@@ -21,8 +21,25 @@ child_process.execSync(`git checkout -q ${vscodeVersion}`, {
 
 child_process.execSync('yarn', { stdio: 'inherit' });
 
-// Use simple workbench
-fse.copySync('../vscode-patch', './', { overwrite: true });
+// Patch VSCode
+const patchPath = '../vscode-patch';
+const extendedSuffix = '.extended.ts';
+
+glob.sync(`${patchPath}/**/*.*`).forEach((value) => {
+  const targetFile = value.slice(patchPath.length);
+
+  if (value.endsWith(extendedSuffix)) {
+    const targetPath = `.${targetFile.slice(0, -extendedSuffix.length)}.ts`;
+
+    child_process.execSync(`git checkout ${targetPath}`, {
+      stdio: 'inherit',
+    });
+    fs.appendFileSync(targetPath, fs.readFileSync(value));
+    return;
+  }
+
+  fse.copySync(value, `.${targetFile}`, { overwrite: true });
+});
 
 // Adapt compilation to web
 const gulpfilePath = './build/gulpfile.vscode.js';
@@ -54,7 +71,7 @@ fse.copySync('out-vscode-min', '../dist/vscode');
 
 const extensionFilesToRemove = [
   ...glob.sync('extensions/**/node_modules', {}),
-  ...glob.sync('extensions/**/*.map', {}),
+  ...glob.sync('extensions/**/*.js.map', {}),
 ];
 extensionFilesToRemove.forEach((path) => {
   rmdir.sync(path, { recursive: true });

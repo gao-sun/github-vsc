@@ -41,17 +41,15 @@ export const decodePathAsGitHubLocation = async (
     return [undefined, undefined];
   }
 
-  const defaultBranch = await getDefaultBranch(owner, repo);
-
   // trying to get default branch
-  if (!rest) {
-    if (!defaultBranch) {
-      return [undefined, undefined];
-    }
-    return [
-      { owner, repo, ref: `refs/heads/${defaultBranch}`, uri: GitHubFS.rootUri },
-      defaultBranch,
-    ];
+  const defaultBranch = await getDefaultBranch(owner, repo);
+  const defaultLocation: [Optional<GitHubLocation>, Optional<string>] = [
+    { owner, repo, ref: `refs/heads/${defaultBranch}`, uri: GitHubFS.rootUri },
+    defaultBranch,
+  ];
+
+  if (!rest || !defaultBranch) {
+    return defaultLocation;
   }
 
   const [matchingRef] = rest.split('/');
@@ -90,6 +88,5 @@ export const decodePathAsGitHubLocation = async (
     console.error('error when getting matching ref', owner, repo, error);
   }
 
-  window.showWarningMessage(`Ref matching failed`);
-  return [undefined, undefined];
+  return defaultLocation;
 };

@@ -3,7 +3,6 @@ import { GitHubFS } from './github-fs';
 import { updateAPIAuth } from './apis';
 import init from './init';
 import { getVSCodeData } from './utils/global-state';
-import { decodePathAsGitHubLocation } from './utils/uri-decode';
 
 init();
 
@@ -13,10 +12,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   updateAPIAuth(vsCodeData?.userContext?.pat);
 
-  const [location, defaultBranch] = await decodePathAsGitHubLocation();
-  console.log('decoded location', location);
-
-  context.subscriptions.push(new GitHubFS(context, location, defaultBranch));
+  context.subscriptions.push(new GitHubFS(context));
 
   console.log('GitHub VSC activated');
 }
