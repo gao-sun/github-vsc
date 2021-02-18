@@ -82,4 +82,4 @@ yarn dev
 
 Heavily inspired by [github1s](https://github.com/conwnet/github1s), edited vscode compiling part from [vscode-web](https://github.com/Felx-B/vscode-web), and derivated FileSystem implementation from [vscode-web-playground](https://github.com/microsoft/vscode-web-playground).
 
-Also the beautiful One Dark theme exported from [vscode-theme-onedark](https://github.com/akamud/vscode-theme-onedark).
+Also exported the beautiful One Dark theme from [vscode-theme-onedark](https://github.com/akamud/vscode-theme-onedark).
