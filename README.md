@@ -1,6 +1,6 @@
 # GitHub VSC
 
-Use VSCode to view and edit GitHub repos, in your browser. Inspired by github1s.
+Use VSCode to view and commit changes on GitHub repos, in your browser. Inspired by github1s.
 
 ## How?
 
