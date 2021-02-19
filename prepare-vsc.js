@@ -11,5 +11,6 @@ if (fs.existsSync('./app/lib')) {
 
 fse.copySync('./dist', './app/dist');
 fse.copySync('./node_modules/semver-umd', './app/lib/semver-umd');
+fse.copySync('./node_modules/iconv-lite-umd', './app/lib/iconv-lite-umd');
 fse.copySync('./node_modules/vscode-oniguruma', './app/lib/vscode-oniguruma');
 fse.copySync('./node_modules/vscode-textmate', './app/lib/vscode-textmate');
