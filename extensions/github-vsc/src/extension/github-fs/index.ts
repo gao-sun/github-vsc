@@ -27,6 +27,7 @@ import {
   FileDecorationProvider,
   FileDecoration,
   ThemeColor,
+  commands,
 } from 'vscode';
 import { Directory, Entry, GitFileMode, GitHubLocation } from './types';
 import {
@@ -56,6 +57,7 @@ import {
   showGlobalSearchAPIInfo,
   showNoLocationWarning,
   showNoDefaultBranchWarning,
+  openControlPanel,
 } from './message';
 import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
 import { getShortenRef } from '../utils/git-ref';
@@ -128,11 +130,13 @@ export class GitHubFS
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
         ref: this.githubRef,
         permission,
+        commitMessage: this.ghfsSCM.scm.inputBox.value,
         changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     } catch {
       updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
         ref: this.githubRef,
+        commitMessage: this.ghfsSCM.scm.inputBox.value,
         changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     }
@@ -240,6 +244,10 @@ export class GitHubFS
       // change uri when document opening/closing
       vsCodeWindow.onDidChangeActiveTextEditor(() => this.updateBroswerUrl()),
       vsCodeWindow.registerFileDecorationProvider(this),
+      commands.registerCommand(GHFSSourceControl.commitChangesCommand, () => {
+        this.updateRepoData(false);
+        openControlPanel();
+      }),
       this.ghfsSCM,
     );
 

@@ -56,12 +56,13 @@ const SourceControl = ({ repoData, userContext }: Props) => {
   useEffect(() => {
     if (!!repoData?.changedFiles.length) {
       setCommitMessage(
-        repoData.changedFiles.length > 1
-          ? 'Update files'
-          : `Update ${getFileName(repoData.changedFiles[0])}`,
+        repoData.commitMessage ||
+          (repoData.changedFiles.length > 1
+            ? 'Update files'
+            : `Update ${getFileName(repoData.changedFiles[0])}`),
       );
     }
-  }, [repoData?.changedFiles]);
+  }, [repoData?.changedFiles, repoData?.commitMessage]);
 
   useListenMessage(({ action, payload }) => {
     if (action === WebviewActionEnum.CommitChangesResult) {

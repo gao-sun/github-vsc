@@ -3,7 +3,8 @@ import { getVSCodeData } from '../utils/global-state';
 import { conditionalString, conditional } from '../utils/object';
 import { GitHubLocation } from './types';
 
-const openControlPanel = () => commands.executeCommand('workbench.action.setSideBarViewIndex', 5);
+export const openControlPanel = (): Thenable<void> =>
+  commands.executeCommand('workbench.action.setSideBarViewIndex', 5);
 
 let hasGlobalSearchLimitationInfoShown = false;
 

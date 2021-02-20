@@ -16,6 +16,7 @@ export type UserContext = {
 export type RepoData = {
   ref?: GitHubRef;
   permission?: string;
+  commitMessage?: string;
   changedFiles: Uri[];
 };
 

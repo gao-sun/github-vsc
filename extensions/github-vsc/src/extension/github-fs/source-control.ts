@@ -10,6 +10,7 @@ import {
 import { LOOKUP_ORIGINAL_KEY } from './lookup';
 
 export class GHFSSourceControl implements QuickDiffProvider, Disposable {
+  static commitChangesCommand = 'github-vsc.commitChanges';
   readonly changedGroup: SourceControlResourceGroup;
   readonly scm: SourceControl;
 
@@ -21,6 +22,10 @@ export class GHFSSourceControl implements QuickDiffProvider, Disposable {
     this.scm.quickDiffProvider = this;
     this.scm.inputBox.visible = false;
     this.scm.inputBox.placeholder = 'Commit message (press Cmd/Ctrl+Enter to submit)';
+    this.scm.acceptInputCommand = {
+      title: 'Commit Changes',
+      command: GHFSSourceControl.commitChangesCommand,
+    };
     this.changedGroup = this.scm.createResourceGroup('changes', 'Changed Files');
     this.disposable = Disposable.from(this.scm);
   }
