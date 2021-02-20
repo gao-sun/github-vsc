@@ -170,7 +170,20 @@ export class GitHubFS
       return;
     }
 
-    const { uri: _, ...githubRef } = location;
+    const { uri, ...githubRef } = location;
+
+    if (uri.path === '/') {
+      const [, entries] = await lookupAsDirectory(this.root, location);
+      const readme = [...entries.keys()].find((name) => {
+        const splitted = name.toLowerCase().split('.');
+        return splitted.length === 2 && splitted[0] === 'readme';
+      });
+      if (readme) {
+        this.switchTo({ ...githubRef, uri: Uri.joinPath(uri, readme) });
+        return;
+      }
+    }
+
     this.reopen(description, githubRef);
     showDocumentOrRevealFolderIfNeeded(this.root, location);
   }
