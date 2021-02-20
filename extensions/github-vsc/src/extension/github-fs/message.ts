@@ -1,18 +1,27 @@
 import { env, Uri, ExtensionContext, window as vsCodeWindow, commands } from 'vscode';
-import { getVSCodeData } from '../utils/global-state';
+import {
+  getMessagePromptDisabled,
+  getVSCodeData,
+  setMessagePromptDisabled,
+} from '../utils/global-state';
 import { conditionalString, conditional } from '../utils/object';
 import { GitHubLocation } from './types';
 
 export const openControlPanel = (): Thenable<void> =>
   commands.executeCommand('workbench.action.setSideBarViewIndex', 5);
 
+const globalSearchLimitationKey = 'GLOBAL_SEARCH_LIMITATION';
 let hasGlobalSearchLimitationInfoShown = false;
 
 export const showGlobalSearchLimitationInfo = async (
+  context: ExtensionContext,
   defaultBranch: Optional<string>,
   onSwitchBranch: () => void | Promise<void>,
 ): Promise<void> => {
-  if (hasGlobalSearchLimitationInfoShown) {
+  if (
+    getMessagePromptDisabled(context, globalSearchLimitationKey) ||
+    hasGlobalSearchLimitationInfoShown
+  ) {
     return;
   }
   hasGlobalSearchLimitationInfoShown = true;
@@ -21,7 +30,11 @@ export const showGlobalSearchLimitationInfo = async (
       `Global search is only availble on the default branch ${conditionalString(
         defaultBranch && `\`${defaultBranch}\``,
       )}.`,
-    ...[conditional(defaultBranch && `Switch to ${defaultBranch}`), 'Learn More'].compact(),
+    ...[
+      'Learn More',
+      conditional(defaultBranch && `Switch to ${defaultBranch}`),
+      "Don't Bug Me Again",
+    ].compact(),
   );
 
   if (choose === 'Learn More') {
@@ -33,12 +46,17 @@ export const showGlobalSearchLimitationInfo = async (
   if (choose?.startsWith('Switch to')) {
     onSwitchBranch();
   }
+
+  if (choose?.startsWith("Don't")) {
+    setMessagePromptDisabled(context, globalSearchLimitationKey, true);
+  }
 };
 
+const globalSearchAPIInfoKey = 'GLOBAL_SEARCH_API_INFO';
 let hasGlobalSearchAPIInfoShown = false;
 
 export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promise<void> => {
-  if (hasGlobalSearchAPIInfoShown) {
+  if (getMessagePromptDisabled(context, globalSearchAPIInfoKey) || hasGlobalSearchAPIInfoShown) {
     return;
   }
 
@@ -50,7 +68,7 @@ export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promis
       (hasAuthToken
         ? 'For authenticated requests, the rate limit is 30 requests per minute.'
         : 'For unauthenticated requests, the rate limit is 10 requests per minute.'),
-    ...['Learn More', conditional(!hasAuthToken && 'Setup PAT')].compact(),
+    ...['Learn More', conditional(!hasAuthToken && 'Setup PAT'), "Don't Bug Me Again"].compact(),
   );
 
   if (choose === 'Learn More') {
@@ -59,6 +77,10 @@ export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promis
 
   if (choose === 'Setup PAT') {
     openControlPanel();
+  }
+
+  if (choose?.startsWith("Don't")) {
+    setMessagePromptDisabled(context, globalSearchAPIInfoKey, true);
   }
 };
 
@@ -94,13 +116,24 @@ export const showNoDefaultBranchWarning = async ({
   }
 };
 
-export const showWelcomeInfo = async (): Promise<void> => {
+const welcomeInfoKey = 'WELCOME_INFO';
+
+export const showWelcomeInfo = async (context: ExtensionContext): Promise<void> => {
+  if (getMessagePromptDisabled(context, welcomeInfoKey)) {
+    return;
+  }
+
   const choose = await vsCodeWindow.showInformationMessage(
     'GitHub VSC is an open-source project which is NOT created by GitHub nor Microsoft. Go to the homepage for more information.',
     'Open Homepage',
+    "Don't Bug Me Again",
   );
 
   if (choose === 'Open Homepage') {
     env.openExternal(Uri.parse('https://github.com/gao-sun/github-vsc'));
+  }
+
+  if (choose?.startsWith("Don't")) {
+    setMessagePromptDisabled(context, welcomeInfoKey, true);
   }
 };

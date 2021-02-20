@@ -12,7 +12,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   console.log('GitHub VSC activate with data', vsCodeData);
 
   updateAPIAuth(vsCodeData?.userContext?.pat);
-  showWelcomeInfo();
+  showWelcomeInfo(context);
 
   context.subscriptions.push(new GitHubFS(context));
 

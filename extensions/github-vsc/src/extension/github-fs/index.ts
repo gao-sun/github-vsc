@@ -391,7 +391,7 @@ export class GitHubFS
     const defaultBranch = this.defaultBranch;
 
     if (!ref || !this.isOnDefaultBranch()) {
-      showGlobalSearchLimitationInfo(defaultBranch, async () => {
+      showGlobalSearchLimitationInfo(this.extensionContext, defaultBranch, async () => {
         if (defaultBranch && this.githubRef) {
           if (this.ghfsSCM.getChangedFiles().length > 0) {
             const choose = await vsCodeWindow.showWarningMessage(
