@@ -31,7 +31,13 @@
           "type": "webview"
         }
       ]
-    }
+    },
+    "commands": [
+      {
+        "command": "gvscTerminal.create",
+        "title": "GitHub VSC: Create Terminal"
+      }
+    ]
   },
   "main": "./dist/extension.js",
   "browser": "./dist/extension.js",
@@ -44,7 +50,7 @@
     "test-compile": "tsc -p ./",
     "test-watch": "tsc -watch -p ./",
     "pretest": "yarn run test-compile && yarn run lint",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src --ext ts --ext tsx",
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
@@ -90,6 +96,7 @@
     "dayjs": "^1.10.4",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "regenerator-runtime": "^0.13.7"
+    "regenerator-runtime": "^0.13.7",
+    "socket.io-client": "^3.1.1"
   }
 }

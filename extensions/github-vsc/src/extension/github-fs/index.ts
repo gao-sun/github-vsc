@@ -255,7 +255,7 @@ export class GitHubFS
   }
 
   dispose(): void {
-    this.disposable?.dispose();
+    this.disposable.dispose();
   }
 
   // MARK: FileDecorationProvider implementation
