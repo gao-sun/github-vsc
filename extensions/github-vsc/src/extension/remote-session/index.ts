@@ -16,8 +16,8 @@ import {
 } from '@github-vsc-runner/core';
 import { nanoid } from 'nanoid';
 
-import view from './view.html';
 import { TerminalData } from '@src/types/foundation';
+import configureWebview from '../utils/configure-webview';
 
 export enum RunnerStatus {
   Disconnected,
@@ -161,20 +161,25 @@ export class RemoteSession implements Disposable {
     }
 
     commands.executeCommand('workbench.action.editorLayoutTwoRows');
+
     const panel = vsCodeWindow.createWebviewPanel(
       'github-vsc-terminal',
       'GitHub VSC Terminal',
       ViewColumn.Beside,
       { retainContextWhenHidden: true },
     );
-    panel.webview.options = { enableScripts: true };
-    panel.webview.html = view;
-    panel.webview.onDidReceiveMessage(
-      (event) => this.onInput(event),
-      undefined,
+    const webview = panel.webview;
+
+    this._panel = panel;
+    configureWebview(
+      this._extensionContext,
+      webview,
+      'terminal-app',
+      'GitHub VSC Terminal',
+      (event: any) => this.onInput(event),
       this._extensionContext.subscriptions,
     );
-    this._panel = panel;
+
     commands.executeCommand('workbench.action.moveEditorToBelowGroup');
   }
 }
