@@ -30,3 +30,8 @@ export enum CommitMethod {
   PR = 'pr',
   Fork = 'fork',
 }
+
+export type TerminalData = {
+  terminalId: string;
+  data: unknown;
+};

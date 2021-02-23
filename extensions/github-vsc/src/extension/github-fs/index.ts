@@ -231,6 +231,7 @@ export class GitHubFS
   constructor(extensionContext: ExtensionContext) {
     this.extensionContext = extensionContext;
     this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
+    // TO-DO: de-couple this from FS
     this.controlPanelView = new ControlPanelView(extensionContext, (action) =>
       this.actionHandler(action),
     );

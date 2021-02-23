@@ -1,3 +1,12 @@
+:root {
+  background: var(--vscode-sideBar-background);
+
+  body {
+    background: var(--vscode-sideBar-background);
+    border-top: 1px solid rgba(#eee, 0.2);
+  }
+}
+
 .app {
   > * + * {
     margin-top: 24px;

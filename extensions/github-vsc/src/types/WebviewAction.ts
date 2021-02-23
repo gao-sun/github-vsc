@@ -8,6 +8,8 @@ export enum WebviewActionEnum {
   CommitChanges = 'CommitChanges',
   CommitChangesMessage = 'CommitChangesMessage',
   CommitChangesResult = 'CommitChangesResult',
+  ConnectToRemoteSession = 'ConnectToRemoteSession',
+  ActivateTerminal = 'ActivateTerminal',
 }
 
 export type ProposeChangesPayload = {

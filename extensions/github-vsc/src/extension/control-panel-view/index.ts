@@ -1,11 +1,13 @@
 import { ExtensionContext, Uri, Webview, WebviewView, WebviewViewProvider } from 'vscode';
-import WebviewAction from '@src/types/WebviewAction';
+import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
 
 import view from './view.html';
+import { RemoteSession } from '../remote-session';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
   private readonly _actionHanlder: (action: WebviewAction) => void | Promise<void>;
+  private _remoteSession: RemoteSession;
   private webview?: Webview;
 
   constructor(
@@ -14,7 +16,21 @@ export class ControlPanelView implements WebviewViewProvider {
   ) {
     this._extensionContext = extensionContext;
     this._actionHanlder = actionHanlder;
+    this._remoteSession = new RemoteSession(extensionContext);
   }
+
+  private handleAction = (action: WebviewAction) => {
+    if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
+      this._remoteSession.conntectTo('ws://localhost:3000', 'uNlJDlaRAibGssDd3hNxJ');
+      return;
+    }
+
+    if (action.action === WebviewActionEnum.ActivateTerminal) {
+      this._remoteSession.createPanelIfNeeded();
+      return;
+    }
+    this._actionHanlder(action);
+  };
 
   resolveWebviewView(webviewView: WebviewView): void {
     const extensionUri = this._extensionContext.extensionUri;
@@ -25,11 +41,7 @@ export class ControlPanelView implements WebviewViewProvider {
     const stylesUri = webview.asWebviewUri(stylesPath);
 
     this.webview = webview;
-    webview.onDidReceiveMessage(
-      this._actionHanlder,
-      undefined,
-      this._extensionContext.subscriptions,
-    );
+    webview.onDidReceiveMessage(this.handleAction, undefined, this._extensionContext.subscriptions);
     webview.options = { enableScripts: true };
     webview.html = view
       .replace('$SCRIPT_URI$', scriptUri.toString())
