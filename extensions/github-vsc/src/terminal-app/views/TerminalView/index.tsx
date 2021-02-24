@@ -11,6 +11,7 @@ export type Props = {
 const TerminalView = ({ terminal, fitAddon }: Props) => {
   const onResize = useCallback(() => {
     fitAddon.fit();
+    // TO-DO: send to remote
   }, [fitAddon]);
   const { ref } = useResizeDetector<HTMLDivElement>({ onResize });
 

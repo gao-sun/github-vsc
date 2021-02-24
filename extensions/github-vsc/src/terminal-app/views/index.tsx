@@ -30,7 +30,15 @@ const App = () => {
       if (found) {
         return found;
       }
-      const terminal = new Terminal();
+      const terminal = new Terminal({
+        /**
+         * VSCode doesn't expose the raw string for specific theme color.
+         * this is awkward. have to hard-code.
+         */
+        theme: { background: '#282c34' },
+        fontSize: 12,
+        fontFamily: '"Fira Code", "Source Code Pro", courier-new, courier, monospace',
+      });
       const fitAddon = new FitAddon();
 
       terminal.onData((data) => {
