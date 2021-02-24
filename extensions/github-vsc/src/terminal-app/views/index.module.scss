@@ -2,7 +2,12 @@
   height: 100%;
   overflow: hidden;
 
+  * {
+    box-sizing: border-box;
+  }
+
   body {
+    padding: 0;
     height: 100%;
 
     :global(#root) {
@@ -13,10 +18,38 @@
 }
 
 .app {
+  padding: 0 20px;
   height: 100%;
   display: flex;
+  position: relative;
 
   > * {
     flex-grow: 1;
+  }
+
+  .newTerminal {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    user-select: none;
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    > svg {
+      width: 16px;
+      fill: var(--vscode-tab-inactiveForeground);
+    }
+
+    &:hover {
+      cursor: pointer;
+      background: var(--vscode-sideBar-background);
+
+      > svg {
+        fill: var(--vscode-tab-activeForeground);
+      }
+    }
   }
 }

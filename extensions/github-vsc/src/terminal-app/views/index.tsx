@@ -7,6 +7,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 
 import 'xterm/css/xterm.css';
+import TerminalIcon from '../icons/Terminal';
 import styles from './index.module.scss';
 import TerminalView from './TerminalView';
 
@@ -74,6 +75,9 @@ const App = () => {
       {instances.map(({ id, terminal, fitAddon }) => (
         <TerminalView key={id} terminal={terminal} fitAddon={fitAddon} />
       ))}
+      <div className={styles.newTerminal} title="New Terminal">
+        <TerminalIcon />
+      </div>
     </div>
   );
 };
