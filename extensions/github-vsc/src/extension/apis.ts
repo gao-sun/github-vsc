@@ -1,6 +1,6 @@
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { OctokitResponse } from '@octokit/types';
-import { GitHubRef, UserContext } from '@src/types/foundation';
+import { GitHubRef, UserContext } from '@core/types/foundation';
 import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
 import {

@@ -1,4 +1,4 @@
-import WebviewAction from '@src/types/WebviewAction';
+import WebviewAction from '@core/types/WebviewAction';
 import { useEffect } from 'react';
 
 const useListenMessage = (handler: (action: WebviewAction) => void | Promise<void>): void => {

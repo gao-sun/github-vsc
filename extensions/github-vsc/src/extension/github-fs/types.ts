@@ -1,4 +1,4 @@
-import { GitHubRef } from '@src/types/foundation';
+import { GitHubRef } from '@core/types/foundation';
 import { FileStat, FileType, Uri } from 'vscode';
 
 export type Entry = File | Directory;

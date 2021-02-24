@@ -49,7 +49,7 @@ import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
-import { GitHubRef } from '@src/types/foundation';
+import { GitHubRef } from '@core/types/foundation';
 import { postUpdateData, commitChanges, updateRepoData, validatePAT } from './action-handler';
 import { getVSCodeData } from '../utils/global-state';
 import {
@@ -59,7 +59,7 @@ import {
   showNoDefaultBranchWarning,
   openControlPanel,
 } from './message';
-import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
+import WebviewAction, { WebviewActionEnum } from '@core/types/WebviewAction';
 import { getShortenRef } from '../utils/git-ref';
 
 export class GitHubFS

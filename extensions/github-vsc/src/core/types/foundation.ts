@@ -33,5 +33,10 @@ export enum CommitMethod {
 
 export type TerminalData = {
   terminalId: string;
-  data: unknown;
+  data: string | Uint8Array;
+};
+
+export type SessionData = {
+  id: string;
+  terminalIds: string[];
 };

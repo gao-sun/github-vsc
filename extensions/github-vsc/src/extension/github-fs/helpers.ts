@@ -1,4 +1,4 @@
-import { GitHubRef } from '@src/types/foundation';
+import { GitHubRef } from '@core/types/foundation';
 import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch } from 'vscode';
 import { GitHubFS } from '.';
 import { SearchResponse } from '../apis';

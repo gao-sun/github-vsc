@@ -2,16 +2,16 @@ import Button from '@/components/Button';
 import Description from '@/components/Description';
 import Tip from '@/components/Tip';
 import Title from '@/components/Title';
-import { CommitMethod, RepoData, UserContext } from '@src/types/foundation';
+import { CommitMethod, RepoData, UserContext } from '@core/types/foundation';
 import React, { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 
 import styles from './index.module.scss';
-import { vscodeApi } from '@/utils/vscode';
-import WebViewAction, { ProposeChangesPayload, WebviewActionEnum } from '@src/types/WebviewAction';
+import { vscodeApi } from '@core/utils/vscode';
+import WebViewAction, { ProposeChangesPayload, WebviewActionEnum } from '@core/types/WebviewAction';
 import { conditionalString } from '@src/extension/utils/object';
-import { getFileName } from '@/utils/path';
-import useListenMessage from '@/hooks/useListenMessage';
+import { getFileName } from '@core/utils/path';
+import useListenMessage from '@core/hooks/useListenMessage';
 
 type CommitOption = {
   method: CommitMethod;

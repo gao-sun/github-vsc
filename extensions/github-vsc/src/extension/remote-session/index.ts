@@ -16,8 +16,9 @@ import {
 } from '@github-vsc-runner/core';
 import { nanoid } from 'nanoid';
 
-import { TerminalData } from '@src/types/foundation';
+import { TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
+import WebviewAction, { WebviewActionEnum } from '@src/core/types/WebviewAction';
 
 export enum RunnerStatus {
   Disconnected,
@@ -30,17 +31,26 @@ export class RemoteSession implements Disposable {
   // MARK: disposable
   private readonly _extensionContext: ExtensionContext;
   private _panel?: WebviewPanel;
+  private _terminals: TerminalOptions[];
   runnerStatus: RunnerStatus;
   runnerClientStatus: RunnerClientStatus;
-  terminals: TerminalOptions[];
   sessionId?: string;
   socket?: Socket;
+
+  set terminals(terminals: TerminalOptions[]) {
+    this._terminals = terminals;
+    this.postTerminalsToWebview();
+  }
+
+  get terminals(): TerminalOptions[] {
+    return this._terminals;
+  }
 
   constructor(extensionContext: ExtensionContext) {
     this._extensionContext = extensionContext;
     this.runnerStatus = RunnerStatus.Disconnected;
     this.runnerClientStatus = RunnerClientStatus.Offline;
-    this.terminals = [];
+    this._terminals = [];
   }
 
   dispose(): void {}
@@ -103,7 +113,7 @@ export class RemoteSession implements Disposable {
         console.log('session started', id);
 
         if (this.sessionId) {
-          this.retrieveRemoteTerminals();
+          this.retrieveRunnerInfo();
         }
 
         this.sessionId = id;
@@ -122,36 +132,58 @@ export class RemoteSession implements Disposable {
     });
     this.socket?.on(RunnerClientEvent.Stdout, (terminalId: string, data: unknown) => {
       console.log('stdout', terminalId, data);
-      this._panel?.webview.postMessage({ terminalId, data });
+      const action = {
+        action: WebviewActionEnum.TerminalStdout,
+        payload: { terminalId, data },
+      };
+      this._panel?.webview.postMessage(action);
     });
     this.socket?.on(RunnerServerEvent.RunnerStatus, (status: RunnerClientStatus) => {
       this.runnerClientStatus = status;
     });
   }
 
-  private onInput({ terminalId, data }: TerminalData) {
-    console.log('on input', terminalId, data);
-    this.socket?.emit(VscClientEvent.Cmd, terminalId, data);
+  private handleAction = ({ action, payload }: WebviewAction) => {
+    if (action === WebviewActionEnum.RequestData) {
+      this.postTerminalsToWebview();
+    }
+
+    if (action === WebviewActionEnum.TerminalCmd) {
+      const { terminalId, data } = payload as TerminalData;
+      console.log('on input', terminalId, data);
+      this.socket?.emit(VscClientEvent.Cmd, terminalId, data);
+    }
+  };
+
+  private postTerminalsToWebview() {
+    const action: WebviewAction = {
+      action: WebviewActionEnum.SetTerminals,
+      payload: this.terminals.map(({ id }) => id),
+    };
+    this._panel?.webview.postMessage(action);
   }
 
-  private retrieveRemoteTerminals() {
+  private retrieveRunnerInfo() {
+    this.socket?.emit(VscClientEvent.CheckRunnerStatus);
     this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
   }
 
-  activateTerminal(): boolean {
+  activateTerminalIfNeeded(): boolean {
     if (this.runnerClientStatus === RunnerClientStatus.Offline) {
       return false;
     }
 
-    const options: TerminalOptions = {
-      id: nanoid(),
-      file: 'bash',
-      cols: 80,
-      rows: 30,
-    };
-    this.terminals = this.terminals.concat(options);
-    this.socket?.emit(VscClientEvent.ActivateTerminal, options);
     this.createPanelIfNeeded();
+    if (!this.terminals.length) {
+      const options: TerminalOptions = {
+        id: nanoid(),
+        file: 'bash',
+        cols: 80,
+        rows: 30,
+      };
+      this.terminals = this.terminals.concat(options);
+      this.socket?.emit(VscClientEvent.ActivateTerminal, options);
+    }
     return true;
   }
 
@@ -176,7 +208,7 @@ export class RemoteSession implements Disposable {
       webview,
       'terminal-app',
       'GitHub VSC Terminal',
-      (event: any) => this.onInput(event),
+      this.handleAction,
       this._extensionContext.subscriptions,
     );
 

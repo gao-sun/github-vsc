@@ -33,6 +33,7 @@ const getConfig = (_, { mode }) => {
       alias: {
         '@': path.resolve(__dirname, 'src/control-panel'),
         '@src': path.resolve(__dirname, 'src'),
+        '@core': path.resolve(__dirname, 'src/core'),
       },
     },
     module: {
@@ -64,6 +65,18 @@ const getConfig = (_, { mode }) => {
             },
             {
               loader: 'sass-loader',
+              options: {
+                sourceMap: isDevelopment,
+              },
+            },
+          ],
+        },
+        {
+          test: /\.css$/,
+          use: [
+            isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
+            {
+              loader: 'css-loader',
               options: {
                 sourceMap: isDevelopment,
               },

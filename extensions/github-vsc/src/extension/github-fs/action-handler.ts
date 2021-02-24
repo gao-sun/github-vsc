@@ -1,4 +1,7 @@
-import WebviewAction, { ProposeChangesPayload, WebviewActionEnum } from '@src/types/WebviewAction';
+import WebviewAction, {
+  ProposeChangesPayload,
+  WebviewActionEnum,
+} from '@core/types/WebviewAction';
 import { env, ExtensionContext, Uri, Webview } from 'vscode';
 import { setPartialVSCodeData } from '../utils/global-state';
 import {
@@ -12,7 +15,13 @@ import {
   updateAPIAuth,
   updateGitRef,
 } from '../apis';
-import { CommitMethod, GitHubRef, RepoData, UserContext, VSCodeData } from '@src/types/foundation';
+import {
+  CommitMethod,
+  GitHubRef,
+  RepoData,
+  UserContext,
+  VSCodeData,
+} from '@core/types/foundation';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { buildFullRef, buildRef, getShortenRef } from '../utils/git-ref';
 import { lookupAsFile } from './lookup';

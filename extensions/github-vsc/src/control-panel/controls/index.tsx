@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { WebviewActionEnum } from '@src/types/WebviewAction';
-import useListenMessage from '@/hooks/useListenMessage';
-import { vscodeApi } from '@/utils/vscode';
+import { WebviewActionEnum } from '@core/types/WebviewAction';
+import useListenMessage from '@core/hooks/useListenMessage';
+import { vscodeApi } from '@core/utils/vscode';
 
 import PAT from './PAT';
 import SourceControl from './SourceControl';
 import styles from './index.module.scss';
-import { VSCodeData } from '@src/types/foundation';
+import { VSCodeData } from '@core/types/foundation';
 import RemoteSession from './RemoteSession';
 
 const App = () => {

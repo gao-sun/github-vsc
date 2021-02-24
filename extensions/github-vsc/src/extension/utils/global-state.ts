@@ -1,4 +1,4 @@
-import { VSCodeData } from '@src/types/foundation';
+import { VSCodeData } from '@core/types/foundation';
 import { ExtensionContext } from 'vscode';
 
 export const getState = (context: ExtensionContext): ExtensionContext['globalState'] =>
