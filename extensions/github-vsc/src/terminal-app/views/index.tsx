@@ -4,12 +4,15 @@ import WebviewAction, { WebviewActionEnum } from '@src/core/types/WebviewAction'
 import { vscodeApi } from '@src/core/utils/vscode';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
 
 import 'xterm/css/xterm.css';
 import styles from './index.module.scss';
+import TerminalView from './TerminalView';
 
 type TerminalInstance = {
   terminal: Terminal;
+  fitAddon: FitAddon;
   id: string;
 };
 
@@ -17,17 +20,18 @@ const App = () => {
   const [instances, setInstances] = useState<TerminalInstance[]>([]);
   const findTerminalById = useCallback(
     (terminalId: string) => {
-      return instances.find(({ id }) => id === terminalId)?.terminal;
+      return instances.find(({ id }) => id === terminalId);
     },
     [instances],
   );
   const createTerminalIfNotExists = useCallback(
-    (id: string): Terminal => {
+    (id: string): TerminalInstance => {
       const found = findTerminalById(id);
       if (found) {
         return found;
       }
       const terminal = new Terminal();
+      const fitAddon = new FitAddon();
 
       terminal.onData((data) => {
         const action: WebviewAction = {
@@ -36,7 +40,7 @@ const App = () => {
         };
         vscodeApi.postMessage(action);
       });
-      return terminal;
+      return { id, terminal, fitAddon };
     },
     [findTerminalById],
   );
@@ -48,26 +52,19 @@ const App = () => {
   useListenMessage(({ action, payload }: WebviewAction) => {
     if (action === WebviewActionEnum.SetTerminals) {
       const ids = payload as string[];
-      setInstances(ids.map((id) => ({ id, terminal: createTerminalIfNotExists(id) })));
+      setInstances(ids.map((id) => createTerminalIfNotExists(id)));
     }
 
     if (action === WebviewActionEnum.TerminalStdout) {
       const { terminalId, data } = payload as TerminalData;
-      findTerminalById(terminalId)?.write(data);
+      findTerminalById(terminalId)?.terminal.write(data);
     }
   });
 
   return (
     <div className={styles.app}>
-      {instances.map(({ id, terminal }) => (
-        <div
-          key={id}
-          ref={(dom) => {
-            if (dom) {
-              terminal.open(dom);
-            }
-          }}
-        ></div>
+      {instances.map(({ id, terminal, fitAddon }) => (
+        <TerminalView key={id} terminal={terminal} fitAddon={fitAddon} />
       ))}
     </div>
   );
