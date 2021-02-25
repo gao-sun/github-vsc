@@ -62,6 +62,12 @@ const App = () => {
     vscodeApi.postMessage({ action: WebviewActionEnum.RequestData });
   }, []);
 
+  useEffect(() => {
+    if (instances.length) {
+      instances[instances.length - 1].terminal.focus();
+    }
+  }, [instances]);
+
   useListenMessage(({ action, payload }: WebviewAction) => {
     if (action === WebviewActionEnum.SetTerminals) {
       const ids = payload as string[];
