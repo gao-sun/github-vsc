@@ -21,7 +21,7 @@ export class ControlPanelView implements WebviewViewProvider {
 
   private handleAction = (action: WebviewAction) => {
     if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
-      this._remoteSession.conntectTo('ws://localhost:3000', 'Fvd0iXK2CGMOJV0KRD80i');
+      this._remoteSession.conntectTo('ws://localhost:3000', 'VUTDEqySNYquhFCs282E2');
       return;
     }
 

@@ -18,7 +18,10 @@ import { nanoid } from 'nanoid';
 
 import { TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
-import WebviewAction, { WebviewActionEnum } from '@src/core/types/WebviewAction';
+import WebviewAction, {
+  TerminalDimensionsPayload,
+  WebviewActionEnum,
+} from '@src/core/types/WebviewAction';
 
 export enum RunnerStatus {
   Disconnected,
@@ -153,6 +156,15 @@ export class RemoteSession implements Disposable {
       console.log('on input', terminalId, data);
       this.socket?.emit(VscClientEvent.Cmd, terminalId, data);
     }
+
+    if (action === WebviewActionEnum.ActivateTerminal) {
+      this.activateTerminal();
+    }
+
+    if (action === WebviewActionEnum.TerminalSetDimensions) {
+      const { id, rows, cols } = payload as TerminalDimensionsPayload;
+      this.socket?.emit(VscClientEvent.SetTerminalDimensions, id, { rows, cols });
+    }
   };
 
   private postTerminalsToWebview() {
@@ -168,13 +180,13 @@ export class RemoteSession implements Disposable {
     this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
   }
 
-  activateTerminalIfNeeded(): boolean {
+  activateTerminal(ignoreIfExists = false): boolean {
     if (this.runnerClientStatus === RunnerClientStatus.Offline) {
       return false;
     }
 
     this.createPanelIfNeeded();
-    if (!this.terminals.length) {
+    if (!ignoreIfExists || !this.terminals.length) {
       const options: TerminalOptions = {
         id: nanoid(),
         file: 'bash',
@@ -185,6 +197,10 @@ export class RemoteSession implements Disposable {
       this.socket?.emit(VscClientEvent.ActivateTerminal, options);
     }
     return true;
+  }
+
+  activateTerminalIfNeeded(): boolean {
+    return this.activateTerminal(true);
   }
 
   createPanelIfNeeded(): void {

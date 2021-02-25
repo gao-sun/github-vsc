@@ -1,3 +1,4 @@
+import { ITerminalDimensions } from 'xterm-addon-fit';
 import { CommitMethod } from './foundation';
 
 export enum WebviewActionEnum {
@@ -13,12 +14,17 @@ export enum WebviewActionEnum {
   SetTerminals = 'SetTerminals',
   TerminalStdout = 'TerminalStdout',
   TerminalCmd = 'TerminalCmd',
+  TerminalSetDimensions = 'TerminalSetDimensions',
 }
 
 export type ProposeChangesPayload = {
   commitMethod: CommitMethod;
   commitMessage: string;
   branchName: string;
+};
+
+export type TerminalDimensionsPayload = ITerminalDimensions & {
+  id: string;
 };
 
 export default interface WebviewAction {

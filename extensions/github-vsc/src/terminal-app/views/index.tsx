@@ -53,6 +53,10 @@ const App = () => {
     },
     [findTerminalById],
   );
+  const createNewTerminal = useCallback(
+    () => vscodeApi.postMessage({ action: WebviewActionEnum.ActivateTerminal }),
+    [],
+  );
 
   useEffect(() => {
     vscodeApi.postMessage({ action: WebviewActionEnum.RequestData });
@@ -73,9 +77,15 @@ const App = () => {
   return (
     <div className={styles.app}>
       {instances.map(({ id, terminal, fitAddon }) => (
-        <TerminalView key={id} terminal={terminal} fitAddon={fitAddon} />
+        <TerminalView
+          className={styles.terminal}
+          id={id}
+          key={id}
+          terminal={terminal}
+          fitAddon={fitAddon}
+        />
       ))}
-      <div className={styles.newTerminal} title="New Terminal">
+      <div onClick={createNewTerminal} className={styles.newTerminal} title="New Terminal">
         <TerminalIcon />
       </div>
     </div>

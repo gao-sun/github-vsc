@@ -20,11 +20,14 @@
 .app {
   padding: 0 20px;
   height: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(1px, 1fr));
   position: relative;
 
-  > * {
-    flex-grow: 1;
+  > .terminal + .terminal {
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(#eee, 0.2);
   }
 
   .newTerminal {
