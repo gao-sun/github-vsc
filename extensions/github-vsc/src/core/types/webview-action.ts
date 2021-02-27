@@ -12,7 +12,8 @@ export enum WebviewActionEnum {
   CommitChangesMessage = 'CommitChangesMessage',
   CommitChangesResult = 'CommitChangesResult',
   ConnectToRemoteSession = 'ConnectToRemoteSession',
-  RemoteSessionMessage = 'RemoteSessionMessage',
+  RemoteSessionData = 'RemoteSessionData',
+  RequestRemoteRessionData = 'RequestRemoteRessionData',
   ActivateTerminal = 'ActivateTerminal',
   SetTerminals = 'SetTerminals',
   TerminalStdout = 'TerminalStdout',
@@ -30,7 +31,7 @@ export type TerminalDimensionsPayload = ITerminalDimensions & {
   id: string;
 };
 
-export type RemoteSessionMessagePayload = {
+export type RemoteSessionDataPayload = {
   runnerStatus: RunnerStatus;
   runnerClientStatus: RunnerClientStatus;
   type: 'message' | 'error';

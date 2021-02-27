@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Button from '@/components/Button';
 import Description from '@/components/Description';
 import Title from '@/components/Title';
 import { vscodeApi } from '@core/utils/vscode';
 import { RepoData, SessionData, SessionOS } from '@core/types/foundation';
-import { RemoteSessionMessagePayload, WebviewActionEnum } from '@src/core/types/webview-action';
+import { RemoteSessionDataPayload, WebviewActionEnum } from '@src/core/types/webview-action';
 
 import styles from './index.module.scss';
 import RadioGroup from '@/components/RadioGroup';
@@ -54,14 +54,20 @@ const RemoteSession = ({ repoData }: Props) => {
     runnerClientStatus: RunnerClientStatus.Offline,
   });
 
+  useEffect(() => {
+    vscodeApi.postMessage({
+      action: WebviewActionEnum.RequestRemoteRessionData,
+    });
+  }, []);
+
   useListenMessage(({ action, payload }) => {
-    if (action === WebviewActionEnum.RemoteSessionMessage) {
+    if (action === WebviewActionEnum.RemoteSessionData) {
       const {
         runnerStatus,
         runnerClientStatus,
         type,
         message,
-      } = payload as RemoteSessionMessagePayload;
+      } = payload as RemoteSessionDataPayload;
 
       setRunnerStatusData({ runnerStatus, runnerClientStatus });
 

@@ -3,7 +3,7 @@ import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action
 import configureWebview from '../utils/configure-webview';
 
 import { RemoteSession } from '../remote-session';
-import { deliverRemoteSessionMessage } from '../utils/action-handler';
+import { deliverRemoteSessionData } from '../utils/action-handler';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
@@ -17,16 +17,20 @@ export class ControlPanelView implements WebviewViewProvider {
   ) {
     this._extensionContext = extensionContext;
     this._actionHanlder = actionHanlder;
-    this._remoteSession = new RemoteSession(extensionContext);
+    this._remoteSession = new RemoteSession(extensionContext, (payload) =>
+      deliverRemoteSessionData(this.webview, payload),
+    );
   }
 
   private handleAction = (action: WebviewAction) => {
     // TO-DO: refactor
     if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
-      this._remoteSession.connectTo(action.payload, (payload) =>
-        deliverRemoteSessionMessage(this.webview, payload),
-      );
+      this._remoteSession.connectTo(action.payload);
       return;
+    }
+
+    if (action.action === WebviewActionEnum.RequestRemoteRessionData) {
+      this._remoteSession.deliverStatusData();
     }
 
     if (action.action === WebviewActionEnum.ActivateTerminal) {

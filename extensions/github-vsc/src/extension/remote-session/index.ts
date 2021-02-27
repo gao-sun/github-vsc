@@ -19,13 +19,13 @@ import { nanoid } from 'nanoid';
 import { TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
-  RemoteSessionMessagePayload,
+  RemoteSessionDataPayload,
   TerminalDimensionsPayload,
   WebviewActionEnum,
 } from '@src/core/types/webview-action';
 import { SessionData } from '@src/core/types/foundation';
 import { RunnerStatus } from './types';
-import { conditional, conditionalString } from '../utils/object';
+import { conditional } from '../utils/object';
 
 export class RemoteSession implements Disposable {
   // MARK: disposable
@@ -33,14 +33,14 @@ export class RemoteSession implements Disposable {
   private _panel?: WebviewPanel;
   private _data?: SessionData;
   private _terminals: TerminalOptions[];
-  private _onUpdate?: (payload: RemoteSessionMessagePayload) => void;
+  private _onUpdate: (payload: RemoteSessionDataPayload) => void;
   private _runnerStatus = RunnerStatus.Disconnected;
   private _runnerClientStatus = RunnerClientStatus.Offline;
   socket?: Socket;
 
   set runnerStatus(value: RunnerStatus) {
     this._runnerStatus = value;
-    this.deliverStatusMessage();
+    this.deliverStatusData();
   }
 
   get runnerStatus(): RunnerStatus {
@@ -49,7 +49,7 @@ export class RemoteSession implements Disposable {
 
   set runnerClientStatus(value: RunnerClientStatus) {
     this._runnerClientStatus = value;
-    this.deliverClientStatusMessage();
+    this.deliverStatusData();
   }
 
   get runnerClientStatus(): RunnerClientStatus {
@@ -80,15 +80,19 @@ export class RemoteSession implements Disposable {
     }
   }
 
-  constructor(extensionContext: ExtensionContext) {
+  constructor(
+    extensionContext: ExtensionContext,
+    onUpdate: (payload: RemoteSessionDataPayload) => void,
+  ) {
     this._extensionContext = extensionContext;
+    this._onUpdate = onUpdate;
     this._terminals = [];
   }
 
   dispose(): void {}
 
   // MARK: webview message
-  private deliverStatusMessage(): void {
+  deliverStatusData(): void {
     const { runnerStatus, runnerClientStatus, _onUpdate: onUpdate } = this;
     const statusData = { runnerStatus, runnerClientStatus };
 
@@ -106,14 +110,6 @@ export class RemoteSession implements Disposable {
       });
     }
 
-    if (runnerStatus === RunnerStatus.Disconnected) {
-      onUpdate({
-        ...statusData,
-        type: 'message',
-        message: 'Runner disconnected.',
-      });
-    }
-
     if (runnerStatus === RunnerStatus.SessionTimeout) {
       onUpdate({
         ...statusData,
@@ -126,37 +122,18 @@ export class RemoteSession implements Disposable {
       onUpdate({
         ...statusData,
         type: 'message',
-        message: `Session ${this.sessionId} started. Waiting for runner client response...`,
+        message: conditional(
+          runnerClientStatus === RunnerClientStatus.Offline &&
+            `Session ${this.sessionId} started. Waiting for runner client response...`,
+        ),
       });
     }
   }
 
-  private deliverClientStatusMessage(): void {
-    const { runnerStatus, runnerClientStatus, sessionId, _onUpdate: onUpdate } = this;
-
-    if (!onUpdate || runnerStatus !== RunnerStatus.SessionStarted) {
-      return;
-    }
-
-    onUpdate({
-      runnerStatus,
-      runnerClientStatus,
-      type: 'message',
-      message: conditional(
-        runnerClientStatus === RunnerClientStatus.Offline &&
-          `Runner client for session ${sessionId} disconnected.`,
-      ),
-    });
-  }
-
   // MARK: session control
-  async connectTo(
-    data: SessionData,
-    onUpdate: (payload: RemoteSessionMessagePayload) => void,
-  ): Promise<boolean> {
+  async connectTo(data: SessionData): Promise<boolean> {
     this.socket?.disconnect();
     this._data = data;
-    this._onUpdate = onUpdate;
 
     return new Promise((resolve) => {
       const socket = io(data.serverAddress);

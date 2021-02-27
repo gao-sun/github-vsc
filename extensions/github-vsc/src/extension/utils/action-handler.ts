@@ -1,6 +1,6 @@
 import WebviewAction, {
   ProposeChangesPayload,
-  RemoteSessionMessagePayload,
+  RemoteSessionDataPayload,
   WebviewActionEnum,
 } from '@src/core/types/webview-action';
 import { env, ExtensionContext, Uri, Webview } from 'vscode';
@@ -324,15 +324,15 @@ export const commitChanges = async (
   }
 };
 
-export const deliverRemoteSessionMessage = async (
+export const deliverRemoteSessionData = async (
   webview: Optional<Webview>,
-  payload: RemoteSessionMessagePayload,
+  payload: RemoteSessionDataPayload,
 ): Promise<boolean> => {
   if (!webview) {
     return true;
   }
   return postAction(webview, {
-    action: WebviewActionEnum.RemoteSessionMessage,
+    action: WebviewActionEnum.RemoteSessionData,
     payload,
   });
 };
