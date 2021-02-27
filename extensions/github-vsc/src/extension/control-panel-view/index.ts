@@ -4,6 +4,7 @@ import configureWebview from '../utils/configure-webview';
 
 import { RemoteSession } from '../remote-session';
 import { deliverRemoteSessionData } from '../utils/action-handler';
+import { SessionData } from '@src/core/types/foundation';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
@@ -25,8 +26,8 @@ export class ControlPanelView implements WebviewViewProvider {
   private handleAction = (action: WebviewAction) => {
     // TO-DO: refactor
     if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
-      this._remoteSession.connectTo(action.payload);
-      return;
+      const payload = action.payload as SessionData;
+      this._remoteSession.connectTo(payload);
     }
 
     if (action.action === WebviewActionEnum.RequestRemoteRessionData) {
@@ -35,7 +36,6 @@ export class ControlPanelView implements WebviewViewProvider {
 
     if (action.action === WebviewActionEnum.ActivateTerminal) {
       this._remoteSession.activateTerminalIfNeeded();
-      return;
     }
 
     this._actionHanlder(action);

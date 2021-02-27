@@ -16,7 +16,7 @@ import {
 } from '@github-vsc-runner/core';
 import { nanoid } from 'nanoid';
 
-import { TerminalData } from '@core/types/foundation';
+import { SessionOS, TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
   RemoteSessionDataPayload,
@@ -26,6 +26,8 @@ import WebviewAction, {
 import { SessionData } from '@src/core/types/foundation';
 import { RunnerStatus } from './types';
 import { conditional } from '../utils/object';
+import { RunnerStatusData } from '@src/core/types/session';
+import { setSessionData } from '../utils/global-state';
 
 export class RemoteSession implements Disposable {
   // MARK: disposable
@@ -34,26 +36,35 @@ export class RemoteSession implements Disposable {
   private _data?: SessionData;
   private _terminals: TerminalOptions[];
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
-  private _runnerStatus = RunnerStatus.Disconnected;
-  private _runnerClientStatus = RunnerClientStatus.Offline;
+  private _runnerStatusData: RunnerStatusData = {
+    runnerStatus: RunnerStatus.Disconnected,
+    runnerClientStatus: RunnerClientStatus.Offline,
+  };
   socket?: Socket;
 
-  set runnerStatus(value: RunnerStatus) {
-    this._runnerStatus = value;
+  setPartialRunnerStatusData(partial: Partial<RunnerStatusData>): void {
+    this._runnerStatusData = { ...this._runnerStatusData, ...partial };
     this.deliverStatusData();
+  }
+
+  get runnerStatusData(): RunnerStatusData {
+    return this._runnerStatusData;
   }
 
   get runnerStatus(): RunnerStatus {
-    return this._runnerStatus;
+    return this._runnerStatusData.runnerStatus;
   }
 
-  set runnerClientStatus(value: RunnerClientStatus) {
-    this._runnerClientStatus = value;
-    this.deliverStatusData();
+  set runnerStatus(runnerStatus: RunnerStatus) {
+    this.setPartialRunnerStatusData({ runnerStatus });
   }
 
   get runnerClientStatus(): RunnerClientStatus {
-    return this._runnerClientStatus;
+    return this._runnerStatusData.runnerClientStatus;
+  }
+
+  set runnerClientStatus(runnerClientStatus: RunnerClientStatus) {
+    this.setPartialRunnerStatusData({ runnerClientStatus });
   }
 
   set terminals(terminals: TerminalOptions[]) {
@@ -93,16 +104,15 @@ export class RemoteSession implements Disposable {
 
   // MARK: webview message
   deliverStatusData(): void {
-    const { runnerStatus, runnerClientStatus, _onUpdate: onUpdate } = this;
-    const statusData = { runnerStatus, runnerClientStatus };
+    const { runnerStatusData: data, _onUpdate: onUpdate } = this;
 
     if (!onUpdate) {
       return;
     }
 
-    if (runnerStatus === RunnerStatus.Connected) {
+    if (data.runnerStatus === RunnerStatus.Connected) {
       onUpdate({
-        ...statusData,
+        ...data,
         type: 'message',
         message: `Runner conncted. ${
           this.sessionId ? `Resuming session ${this.sessionId}` : 'Reuqesting new session'
@@ -110,21 +120,22 @@ export class RemoteSession implements Disposable {
       });
     }
 
-    if (runnerStatus === RunnerStatus.SessionTimeout) {
+    if (data.runnerStatus === RunnerStatus.SessionTimeout) {
       onUpdate({
-        ...statusData,
+        ...data,
         type: 'error',
         message: 'Connection timeout.',
       });
     }
 
-    if (runnerStatus === RunnerStatus.SessionStarted) {
+    if (data.runnerStatus === RunnerStatus.SessionStarted) {
       onUpdate({
-        ...statusData,
+        ...data,
         type: 'message',
         message: conditional(
-          runnerClientStatus === RunnerClientStatus.Offline &&
-            `Session ${this.sessionId} started. Waiting for runner client response...`,
+          data.runnerClientStatus === RunnerClientStatus.Offline
+            ? 'Session started. Waiting for runner client response...'
+            : 'Runner client connected. Happy hacking!',
         ),
       });
     }
@@ -153,8 +164,11 @@ export class RemoteSession implements Disposable {
         }
       };
 
-      this.runnerStatus = RunnerStatus.Disconnected;
-      this.runnerClientStatus = RunnerClientStatus.Offline;
+      this.setPartialRunnerStatusData({
+        sessionId: data.sessionId,
+        runnerStatus: RunnerStatus.Disconnected,
+        runnerClientStatus: RunnerClientStatus.Offline,
+      });
       this.socket = socket;
       this.terminals = [];
 
@@ -178,10 +192,10 @@ export class RemoteSession implements Disposable {
         clearTimeoutHandleIfNeeded();
       });
 
-      socket.on(RunnerServerEvent.SessionStarted, (id: string) => {
-        console.log('received session started event for id', id);
+      socket.on(RunnerServerEvent.SessionStarted, (sessionId: string) => {
+        console.log('received session started event for id', sessionId);
 
-        if (this.sessionId && this.sessionId !== id) {
+        if (this.sessionId && this.sessionId !== sessionId) {
           console.warn("session id doesn't match, skipping");
           return;
         }
@@ -196,14 +210,19 @@ export class RemoteSession implements Disposable {
         clearTimeoutHandleIfNeeded();
 
         this.registerSocketEventListeners();
-        console.log('session started', id);
+        console.log('session started', sessionId);
 
         if (this.sessionId) {
           this.retrieveRunnerInfo();
         }
 
-        this.sessionId = id;
+        this.sessionId = sessionId;
         this.runnerStatus = RunnerStatus.SessionStarted;
+        this.setPartialRunnerStatusData({
+          sessionId,
+          runnerStatus: RunnerStatus.SessionStarted,
+        });
+        setSessionData(this._extensionContext, data.githubRef, { ...data, sessionId });
         resolve(true);
       });
     });
@@ -225,9 +244,12 @@ export class RemoteSession implements Disposable {
       };
       this._panel?.webview.postMessage(action);
     });
-    this.socket?.on(RunnerServerEvent.RunnerStatus, (status: RunnerClientStatus) => {
-      this.runnerClientStatus = status;
-    });
+    this.socket?.on(
+      RunnerServerEvent.RunnerStatus,
+      (runnerClientStatus: RunnerClientStatus, runnerClientOS: SessionOS) => {
+        this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
+      },
+    );
   }
 
   private handleAction = ({ action, payload }: WebviewAction) => {

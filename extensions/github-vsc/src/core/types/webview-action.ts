@@ -2,6 +2,7 @@ import { RunnerClientStatus } from '@github-vsc-runner/core';
 import { RunnerStatus } from '@src/extension/remote-session/types';
 import { ITerminalDimensions } from 'xterm-addon-fit';
 import { CommitMethod } from './foundation';
+import { RunnerStatusData } from './session';
 
 export enum WebviewActionEnum {
   RequestData = 'RequestData',
@@ -31,9 +32,7 @@ export type TerminalDimensionsPayload = ITerminalDimensions & {
   id: string;
 };
 
-export type RemoteSessionDataPayload = {
-  runnerStatus: RunnerStatus;
-  runnerClientStatus: RunnerClientStatus;
+export type RemoteSessionDataPayload = RunnerStatusData & {
   type: 'message' | 'error';
   message?: string;
 };

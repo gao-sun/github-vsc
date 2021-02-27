@@ -47,6 +47,6 @@ export type SessionData = {
   githubRef?: GitHubRef;
   sessionId?: string;
   serverAddress: string;
-  os: SessionOS;
+  os?: SessionOS;
   defaultShell?: string;
 };

@@ -15,6 +15,7 @@ import { RunnerStatus } from '@src/extension/remote-session/types';
 import { conditional } from '@src/extension/utils/object';
 import { RunnerClientStatus } from '@github-vsc-runner/core';
 import classNames from 'classnames';
+import { RunnerStatusData } from '@src/core/types/session';
 
 export type Props = {
   repoData?: RepoData;
@@ -36,12 +37,7 @@ const sessionOptions: readonly SessionOption[] = Object.freeze([
   { value: SessionMethod.Resume, message: 'Resume an existing session.' },
 ]);
 
-type RunnerStatusData = {
-  runnerStatus: RunnerStatus;
-  runnerClientStatus: RunnerClientStatus;
-};
-
-const RemoteSession = ({ repoData }: Props) => {
+const RemoteSession = ({ repoData, sessionData }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -60,16 +56,19 @@ const RemoteSession = ({ repoData }: Props) => {
     });
   }, []);
 
+  useEffect(() => {
+    if (sessionData?.sessionId && !sessionId) {
+      setServerAddress(sessionData.serverAddress);
+      setSessionId(sessionData.sessionId);
+      setSessionMethod(SessionMethod.Resume);
+    }
+  }, [sessionData?.serverAddress, sessionData?.sessionId, sessionId]);
+
   useListenMessage(({ action, payload }) => {
     if (action === WebviewActionEnum.RemoteSessionData) {
-      const {
-        runnerStatus,
-        runnerClientStatus,
-        type,
-        message,
-      } = payload as RemoteSessionDataPayload;
+      const { type, message, ...runnerStatusData } = payload as RemoteSessionDataPayload;
 
-      setRunnerStatusData({ runnerStatus, runnerClientStatus });
+      setRunnerStatusData(runnerStatusData);
 
       if (type === 'message') {
         setMessage(message ?? '');
@@ -78,14 +77,14 @@ const RemoteSession = ({ repoData }: Props) => {
         setError(message ?? 'Error occurred.');
         setLoading(false);
       }
-      if (runnerStatus === RunnerStatus.SessionStarted) {
+      if (runnerStatusData.runnerStatus === RunnerStatus.SessionStarted) {
         setLoading(false);
       }
     }
   });
 
   const connectSession = () => {
-    const payload: Partial<SessionData> = {
+    const payload: SessionData = {
       githubRef: repoData?.ref,
       sessionId: conditional(sessionMethod === SessionMethod.Resume && sessionId),
       serverAddress,
@@ -169,6 +168,22 @@ const RemoteSession = ({ repoData }: Props) => {
             </Title>
             <Description noMargin>{runnerStatusData.runnerClientStatus}</Description>
           </div>
+          {runnerStatusData.runnerClientOS && (
+            <div className={styles.row}>
+              <Title level={3} noMargin>
+                OS
+              </Title>
+              <Description noMargin>{runnerStatusData.runnerClientOS}</Description>
+            </div>
+          )}
+          {runnerStatusData.sessionId && (
+            <div className={styles.row}>
+              <Title level={3} noMargin>
+                Session ID
+              </Title>
+              <Description noMargin>{runnerStatusData.sessionId}</Description>
+            </div>
+          )}
           <div className={classNames(styles.action, styles.unplug)}>
             <Button type="secondary" disabled={loading} onClick={() => {}}>
               Terminate Session
