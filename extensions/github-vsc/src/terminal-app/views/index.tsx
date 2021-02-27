@@ -1,6 +1,6 @@
 import useListenMessage from '@src/core/hooks/useListenMessage';
 import { TerminalData } from '@src/core/types/foundation';
-import WebviewAction, { WebviewActionEnum } from '@src/core/types/WebviewAction';
+import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import { vscodeApi } from '@src/core/utils/vscode';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Terminal } from 'xterm';

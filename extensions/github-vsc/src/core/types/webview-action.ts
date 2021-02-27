@@ -1,3 +1,4 @@
+import { RunnerStatus } from '@src/extension/remote-session/types';
 import { ITerminalDimensions } from 'xterm-addon-fit';
 import { CommitMethod } from './foundation';
 
@@ -10,6 +11,7 @@ export enum WebviewActionEnum {
   CommitChangesMessage = 'CommitChangesMessage',
   CommitChangesResult = 'CommitChangesResult',
   ConnectToRemoteSession = 'ConnectToRemoteSession',
+  RemoteSessionMessage = 'RemoteSessionMessage',
   ActivateTerminal = 'ActivateTerminal',
   SetTerminals = 'SetTerminals',
   TerminalStdout = 'TerminalStdout',
@@ -25,6 +27,12 @@ export type ProposeChangesPayload = {
 
 export type TerminalDimensionsPayload = ITerminalDimensions & {
   id: string;
+};
+
+export type RemoteSessionMessagePayload = {
+  runnerStatus: RunnerStatus;
+  type: 'message' | 'error';
+  message?: string;
 };
 
 export default interface WebviewAction {

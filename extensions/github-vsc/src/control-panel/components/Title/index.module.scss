@@ -3,4 +3,12 @@
   font-weight: bold;
   margin-top: 12px;
   margin-bottom: 8px;
+
+  &.large {
+    font-size: 1.2em;
+  }
+
+  &.subtitle {
+    font-weight: 500;
+  }
 }

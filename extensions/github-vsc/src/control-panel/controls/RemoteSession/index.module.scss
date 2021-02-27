@@ -1,2 +1,13 @@
 .remoteSession {
+  select,
+  input[type='text'] {
+    display: block;
+    width: 100%;
+  }
+
+  .action {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
 }

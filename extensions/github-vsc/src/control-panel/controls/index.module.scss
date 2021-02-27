@@ -7,17 +7,20 @@
 
   body {
     background: var(--vscode-sideBar-background);
-    border-top: 1px solid rgba(#eee, 0.2);
+    border-top: 1px solid rgba(#eee, 0.1);
   }
 }
 
 .app {
   > * + * {
-    margin-top: 24px;
+    margin-top: 20px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(#eee, 0.1);
   }
 }
 
-input[type='text'] {
+input[type='text'],
+select {
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);

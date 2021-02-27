@@ -1,8 +1,9 @@
 import { ExtensionContext, Webview, WebviewView, WebviewViewProvider } from 'vscode';
-import WebviewAction, { WebviewActionEnum } from '@core/types/WebviewAction';
+import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import configureWebview from '../utils/configure-webview';
 
 import { RemoteSession } from '../remote-session';
+import { deliverRemoteSessionMessage } from '../utils/action-handler';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
@@ -20,8 +21,11 @@ export class ControlPanelView implements WebviewViewProvider {
   }
 
   private handleAction = (action: WebviewAction) => {
+    // TO-DO: refactor
     if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
-      this._remoteSession.conntectTo('ws://localhost:3000', 'riWtAALrQM1cgCbhZbSaf');
+      this._remoteSession.connectTo(action.payload, (payload) =>
+        deliverRemoteSessionMessage(this.webview, payload),
+      );
       return;
     }
 

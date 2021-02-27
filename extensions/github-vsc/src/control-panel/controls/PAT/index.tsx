@@ -5,7 +5,7 @@ import Button from '@/components/Button';
 
 import styles from './index.module.scss';
 import { vscodeApi } from '@core/utils/vscode';
-import WebViewAction, { WebviewActionEnum } from '@core/types/WebviewAction';
+import WebViewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import useListenMessage from '@core/hooks/useListenMessage';
 import Title from '@/components/Title';
 import Description from '@/components/Description';

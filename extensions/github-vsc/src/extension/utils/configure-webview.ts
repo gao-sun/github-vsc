@@ -1,5 +1,5 @@
 import { Disposable, ExtensionContext, Uri, Webview } from 'vscode';
-import WebviewAction from '@core/types/WebviewAction';
+import WebviewAction from '@src/core/types/webview-action';
 import view from '@src/static/spa-template.html';
 
 const configureWebview = (

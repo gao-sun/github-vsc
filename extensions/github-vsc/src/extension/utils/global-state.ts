@@ -1,4 +1,6 @@
 import { VSCodeData } from '@core/types/foundation';
+import { GitHubRef, SessionData } from '@src/core/types/foundation';
+import { getRefKey } from '@src/core/utils/ref';
 import { ExtensionContext } from 'vscode';
 
 export const getState = (context: ExtensionContext): ExtensionContext['globalState'] =>
@@ -14,7 +16,7 @@ export const setPartialVSCodeData = async (
   context: ExtensionContext,
   partial: Partial<VSCodeData>,
 ): Promise<VSCodeData> => {
-  const data = { ...getVSCodeData(context), ...partial };
+  const data = { sessionDict: {}, ...getVSCodeData(context), ...partial };
   await getState(context).update(vsCodeDataKey, data);
   return data;
 };
@@ -34,3 +36,22 @@ export const setMessagePromptDisabled = async (
   await getState(context).update(messagePromptKey, data);
   return data;
 };
+
+const getSessionDict = (context: ExtensionContext) => getVSCodeData(context)?.sessionDict;
+
+export const getSessionData = (
+  context: ExtensionContext,
+  githubRef: Optional<GitHubRef>,
+): Optional<SessionData> => getVSCodeData(context)?.sessionDict[getRefKey(githubRef)];
+
+export const setSessionData = (
+  context: ExtensionContext,
+  githubRef: Optional<GitHubRef>,
+  data: Optional<SessionData>,
+): Thenable<VSCodeData> =>
+  setPartialVSCodeData(context, {
+    sessionDict: {
+      ...getSessionDict(context),
+      [getRefKey(githubRef)]: data,
+    },
+  });

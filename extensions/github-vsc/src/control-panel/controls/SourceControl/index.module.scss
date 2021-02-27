@@ -13,27 +13,6 @@
     }
   }
 
-  .commitMethod {
-    .option {
-      user-select: none;
-      display: flex;
-      align-items: flex-start;
-      margin: 8px 0;
-
-      input[type='radio'] {
-        margin: 0;
-        margin-right: 8px;
-        margin-top: 2px;
-        outline: none;
-      }
-
-      label {
-        color: var(--vscode-descriptionForeground);
-        flex-grow: 1;
-      }
-    }
-  }
-
   .proposeChange {
     display: flex;
     align-items: center;

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { useResizeDetector } from 'react-resize-detector';
-import WebviewAction, { WebviewActionEnum } from '@src/core/types/WebviewAction';
+import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import { vscodeApi } from '@src/core/utils/vscode';
 
 export type Props = {

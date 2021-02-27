@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { WebviewActionEnum } from '@core/types/WebviewAction';
+import { WebviewActionEnum } from '@src/core/types/webview-action';
 import useListenMessage from '@core/hooks/useListenMessage';
 import { vscodeApi } from '@core/utils/vscode';
+import { getRefKey } from '@core/utils/ref';
 
 import PAT from './PAT';
 import SourceControl from './SourceControl';
@@ -24,10 +25,12 @@ const App = () => {
     }
   });
 
+  const sessionData = data?.repoData?.ref && data.sessionDict[getRefKey(data.repoData.ref)];
+
   return (
     <div className={styles.app}>
       <PAT token={data?.userContext?.pat}></PAT>
-      <RemoteSession userContext={data?.userContext}></RemoteSession>
+      <RemoteSession userContext={data?.userContext} sessionData={sessionData}></RemoteSession>
       <SourceControl repoData={data?.repoData} userContext={data?.userContext}></SourceControl>
     </div>
   );

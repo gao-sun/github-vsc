@@ -1,9 +1,10 @@
 import WebviewAction, {
   ProposeChangesPayload,
+  RemoteSessionMessagePayload,
   WebviewActionEnum,
-} from '@core/types/WebviewAction';
+} from '@src/core/types/webview-action';
 import { env, ExtensionContext, Uri, Webview } from 'vscode';
-import { setPartialVSCodeData } from '../utils/global-state';
+import { setPartialVSCodeData } from './global-state';
 import {
   createBlob,
   createCommit,
@@ -15,20 +16,14 @@ import {
   updateAPIAuth,
   updateGitRef,
 } from '../apis';
-import {
-  CommitMethod,
-  GitHubRef,
-  RepoData,
-  UserContext,
-  VSCodeData,
-} from '@core/types/foundation';
+import { CommitMethod, GitHubRef, RepoData, UserContext, VSCodeData } from '@core/types/foundation';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
-import { buildFullRef, buildRef, getShortenRef } from '../utils/git-ref';
-import { lookupAsFile } from './lookup';
-import { Directory, File, GitFileType } from './types';
+import { buildFullRef, buildRef, getShortenRef } from './git-ref';
+import { lookupAsFile } from '../github-fs/lookup';
+import { Directory, File, GitFileType } from '../github-fs/types';
 import dayjs from 'dayjs';
-import { wait } from '../utils/wait';
-import { conditional } from '../utils/object';
+import { wait } from './wait';
+import { conditional } from './object';
 
 export const postAction = async (
   webview: Optional<Webview>,
@@ -327,4 +322,17 @@ export const commitChanges = async (
   } catch (error) {
     deliverCommitChangesResult(webview, false, error?.message ?? 'Submitting changes failed.');
   }
+};
+
+export const deliverRemoteSessionMessage = async (
+  webview: Optional<Webview>,
+  payload: RemoteSessionMessagePayload,
+): Promise<boolean> => {
+  if (!webview) {
+    return true;
+  }
+  return postAction(webview, {
+    action: WebviewActionEnum.RemoteSessionMessage,
+    payload,
+  });
 };

@@ -23,6 +23,7 @@ export type RepoData = {
 export type VSCodeData = {
   userContext?: UserContext;
   repoData?: RepoData;
+  sessionDict: Dictionary<string, SessionData>;
 };
 
 export enum CommitMethod {
@@ -36,7 +37,16 @@ export type TerminalData = {
   data: string | Uint8Array;
 };
 
+export enum SessionOS {
+  Ubuntu = 'Ubuntu',
+  macOS = 'macOS',
+  Windows = 'Windows',
+}
+
 export type SessionData = {
-  id: string;
-  terminalIds: string[];
+  githubRef?: GitHubRef;
+  sessionId?: string;
+  serverAddress: string;
+  os: SessionOS;
+  defaultShell?: string;
 };
