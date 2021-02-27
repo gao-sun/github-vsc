@@ -25,6 +25,7 @@ import WebviewAction, {
 } from '@src/core/types/webview-action';
 import { SessionData } from '@src/core/types/foundation';
 import { RunnerStatus } from './types';
+import { conditional, conditionalString } from '../utils/object';
 
 export class RemoteSession implements Disposable {
   // MARK: disposable
@@ -32,9 +33,28 @@ export class RemoteSession implements Disposable {
   private _panel?: WebviewPanel;
   private _data?: SessionData;
   private _terminals: TerminalOptions[];
-  runnerStatus: RunnerStatus;
-  runnerClientStatus: RunnerClientStatus;
+  private _onUpdate?: (payload: RemoteSessionMessagePayload) => void;
+  private _runnerStatus = RunnerStatus.Disconnected;
+  private _runnerClientStatus = RunnerClientStatus.Offline;
   socket?: Socket;
+
+  set runnerStatus(value: RunnerStatus) {
+    this._runnerStatus = value;
+    this.deliverStatusMessage();
+  }
+
+  get runnerStatus(): RunnerStatus {
+    return this._runnerStatus;
+  }
+
+  set runnerClientStatus(value: RunnerClientStatus) {
+    this._runnerClientStatus = value;
+    this.deliverClientStatusMessage();
+  }
+
+  get runnerClientStatus(): RunnerClientStatus {
+    return this._runnerClientStatus;
+  }
 
   set terminals(terminals: TerminalOptions[]) {
     this._terminals = terminals;
@@ -62,19 +82,81 @@ export class RemoteSession implements Disposable {
 
   constructor(extensionContext: ExtensionContext) {
     this._extensionContext = extensionContext;
-    this.runnerStatus = RunnerStatus.Disconnected;
-    this.runnerClientStatus = RunnerClientStatus.Offline;
     this._terminals = [];
   }
 
   dispose(): void {}
+
+  // MARK: webview message
+  private deliverStatusMessage(): void {
+    const { runnerStatus, runnerClientStatus, _onUpdate: onUpdate } = this;
+    const statusData = { runnerStatus, runnerClientStatus };
+
+    if (!onUpdate) {
+      return;
+    }
+
+    if (runnerStatus === RunnerStatus.Connected) {
+      onUpdate({
+        ...statusData,
+        type: 'message',
+        message: `Runner conncted. ${
+          this.sessionId ? `Resuming session ${this.sessionId}` : 'Reuqesting new session'
+        }...`,
+      });
+    }
+
+    if (runnerStatus === RunnerStatus.Disconnected) {
+      onUpdate({
+        ...statusData,
+        type: 'message',
+        message: 'Runner disconnected.',
+      });
+    }
+
+    if (runnerStatus === RunnerStatus.SessionTimeout) {
+      onUpdate({
+        ...statusData,
+        type: 'error',
+        message: 'Connection timeout.',
+      });
+    }
+
+    if (runnerStatus === RunnerStatus.SessionStarted) {
+      onUpdate({
+        ...statusData,
+        type: 'message',
+        message: `Session ${this.sessionId} started. Waiting for runner client response...`,
+      });
+    }
+  }
+
+  private deliverClientStatusMessage(): void {
+    const { runnerStatus, runnerClientStatus, sessionId, _onUpdate: onUpdate } = this;
+
+    if (!onUpdate || runnerStatus !== RunnerStatus.SessionStarted) {
+      return;
+    }
+
+    onUpdate({
+      runnerStatus,
+      runnerClientStatus,
+      type: 'message',
+      message: conditional(
+        runnerClientStatus === RunnerClientStatus.Offline &&
+          `Runner client for session ${sessionId} disconnected.`,
+      ),
+    });
+  }
 
   // MARK: session control
   async connectTo(
     data: SessionData,
     onUpdate: (payload: RemoteSessionMessagePayload) => void,
   ): Promise<boolean> {
+    this.socket?.disconnect();
     this._data = data;
+    this._onUpdate = onUpdate;
 
     return new Promise((resolve) => {
       const socket = io(data.serverAddress);
@@ -85,14 +167,9 @@ export class RemoteSession implements Disposable {
         ) {
           socket.disconnect();
           this.runnerStatus = RunnerStatus.SessionTimeout;
-          onUpdate({
-            runnerStatus: RunnerStatus.SessionTimeout,
-            type: 'error',
-            message: 'Connection timeout. Please try another runner server.',
-          });
           resolve(false);
         }
-      }, 2000);
+      }, 20000);
       const clearTimeoutHandleIfNeeded = () => {
         if (timeoutHandle) {
           clearTimeout(timeoutHandle);
@@ -108,13 +185,6 @@ export class RemoteSession implements Disposable {
         console.log('runner connected');
         socket.emit(VscClientEvent.SetType, this.sessionId);
         this.runnerStatus = RunnerStatus.Connected;
-        onUpdate({
-          runnerStatus: RunnerStatus.Connected,
-          type: 'message',
-          message: `Runner conncted. ${
-            this.sessionId ? `Resuming session ${this.sessionId}` : 'Reuqesting new session'
-          }...`,
-        });
       });
 
       socket.on('error', (error: unknown) => {
@@ -148,21 +218,15 @@ export class RemoteSession implements Disposable {
 
         clearTimeoutHandleIfNeeded();
 
-        this.runnerStatus = RunnerStatus.SessionStarted;
         this.registerSocketEventListeners();
         console.log('session started', id);
-
-        onUpdate({
-          runnerStatus: RunnerStatus.SessionStarted,
-          type: 'message',
-          message: `Session ${id} started. Waiting for runner client response...`,
-        });
 
         if (this.sessionId) {
           this.retrieveRunnerInfo();
         }
 
         this.sessionId = id;
+        this.runnerStatus = RunnerStatus.SessionStarted;
         resolve(true);
       });
     });

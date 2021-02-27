@@ -2,4 +2,8 @@
   color: var(--vscode-descriptionForeground);
   line-height: 1.4em;
   margin: 12px 0;
+
+  &.noMargin {
+    margin: 0;
+  }
 }

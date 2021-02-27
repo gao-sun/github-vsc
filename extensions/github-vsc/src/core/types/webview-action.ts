@@ -1,3 +1,4 @@
+import { RunnerClientStatus } from '@github-vsc-runner/core';
 import { RunnerStatus } from '@src/extension/remote-session/types';
 import { ITerminalDimensions } from 'xterm-addon-fit';
 import { CommitMethod } from './foundation';
@@ -31,6 +32,7 @@ export type TerminalDimensionsPayload = ITerminalDimensions & {
 
 export type RemoteSessionMessagePayload = {
   runnerStatus: RunnerStatus;
+  runnerClientStatus: RunnerClientStatus;
   type: 'message' | 'error';
   message?: string;
 };
