@@ -33,6 +33,7 @@ import dayjs, { Dayjs } from 'dayjs';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
+  restoredFromRemote: boolean;
 };
 
 const terminalLiveThreshold = 3;
@@ -78,6 +79,7 @@ export class RemoteSession implements Disposable {
   set terminals(terminals: TerminalInstance[]) {
     this._terminals = terminals;
     this.postTerminalsToWebview();
+    this.setupPanelIfNeeded();
   }
 
   get terminals(): TerminalInstance[] {
@@ -236,10 +238,22 @@ export class RemoteSession implements Disposable {
     });
   }
 
+  private postTerminalData(terminalId: string, data: unknown) {
+    const action = {
+      action: WebviewActionEnum.TerminalStdout,
+      payload: { terminalId, data },
+    };
+    this._panel?.webview.postMessage(action);
+  }
+
   private registerSocketEventListeners() {
     this.socket?.on(RunnerClientEvent.CurrentTerminals, (terminals: TerminalOptions[]) => {
       console.log('received current terminals', terminals);
-      this.terminals = terminals.map((terminal) => ({ ...terminal, activateTime: dayjs() }));
+      this.terminals = terminals.map((terminal) => ({
+        ...terminal,
+        activateTime: dayjs(),
+        restoredFromRemote: true,
+      }));
     });
     this.socket?.on(RunnerClientEvent.TerminalClosed, (terminalId: string) => {
       if (
@@ -247,7 +261,7 @@ export class RemoteSession implements Disposable {
           0) >= -terminalLiveThreshold
       ) {
         vsCodeWindow.showWarningMessage(
-          `Terminal closed in ${terminalLiveThreshold} seconds, this may indicates error. Please make sure the shell file exists in the runner client.`,
+          `Terminal closed in ${terminalLiveThreshold} seconds, this may indicates an error. Please make sure the shell file exists in the runner client OS.`,
         );
       }
 
@@ -255,11 +269,7 @@ export class RemoteSession implements Disposable {
     });
     this.socket?.on(RunnerClientEvent.Stdout, (terminalId: string, data: unknown) => {
       console.log('stdout', terminalId, data);
-      const action = {
-        action: WebviewActionEnum.TerminalStdout,
-        payload: { terminalId, data },
-      };
-      this._panel?.webview.postMessage(action);
+      this.postTerminalData(terminalId, data);
     });
     this.socket?.on(
       RunnerServerEvent.RunnerStatus,
@@ -294,7 +304,7 @@ export class RemoteSession implements Disposable {
   private postTerminalsToWebview() {
     const action: WebviewAction = {
       action: WebviewActionEnum.SetTerminals,
-      payload: this.terminals.map(({ id }) => id),
+      payload: this.terminals,
     };
     this._panel?.webview.postMessage(action);
   }
@@ -309,7 +319,6 @@ export class RemoteSession implements Disposable {
       return false;
     }
 
-    this.createPanelIfNeeded();
     if (!ignoreIfExists || !this.terminals.length) {
       const options: TerminalInstance = {
         id: nanoid(),
@@ -317,6 +326,7 @@ export class RemoteSession implements Disposable {
         cols: 80,
         rows: 30,
         activateTime: dayjs(),
+        restoredFromRemote: false,
       };
       this.terminals = this.terminals.concat(options);
       this.socket?.emit(VscClientEvent.ActivateTerminal, options);
@@ -328,8 +338,9 @@ export class RemoteSession implements Disposable {
     return this.activateTerminal(file, true);
   }
 
-  createPanelIfNeeded(): void {
+  revealPanel(): void {
     if (this._panel) {
+      this._panel.reveal();
       return;
     }
 
@@ -354,5 +365,13 @@ export class RemoteSession implements Disposable {
     );
 
     commands.executeCommand('workbench.action.moveEditorToBelowGroup');
+  }
+
+  private setupPanelIfNeeded() {
+    if (!this.terminals.length) {
+      this._panel?.dispose();
+    } else {
+      this.revealPanel();
+    }
   }
 }

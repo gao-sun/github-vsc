@@ -17,6 +17,11 @@ type TerminalInstance = {
   id: string;
 };
 
+type TerminalDataPayload = {
+  id: string;
+  restoredFromRemote: boolean;
+};
+
 const App = () => {
   const [instances, setInstances] = useState<TerminalInstance[]>([]);
   const findTerminalById = useCallback(
@@ -26,7 +31,7 @@ const App = () => {
     [instances],
   );
   const createTerminalIfNotExists = useCallback(
-    (id: string): TerminalInstance => {
+    ({ id, restoredFromRemote }: TerminalDataPayload): TerminalInstance => {
       const found = findTerminalById(id);
       if (found) {
         return found;
@@ -49,6 +54,11 @@ const App = () => {
         };
         vscodeApi.postMessage(action);
       });
+
+      if (restoredFromRemote) {
+        terminal.write('Session restored.\x85');
+      }
+
       return { id, terminal, fitAddon };
     },
     [findTerminalById],
@@ -70,8 +80,8 @@ const App = () => {
 
   useListenMessage(({ action, payload }: WebviewAction) => {
     if (action === WebviewActionEnum.SetTerminals) {
-      const ids = payload as string[];
-      setInstances(ids.map((id) => createTerminalIfNotExists(id)));
+      const ids = payload as TerminalDataPayload[];
+      setInstances(ids.map((terminal) => createTerminalIfNotExists(terminal)));
     }
 
     if (action === WebviewActionEnum.TerminalStdout) {
