@@ -103,7 +103,17 @@ const PAT = ({ token }: Props) => {
           </>
         )}
       </div>
-      <Description>{getDescription()}</Description>
+      <Description>
+        {getDescription()}
+        {!hasToken && (
+          <>
+            &nbsp;
+            <a href="https://github.com/settings/tokens/new?description=GitHub%20VSC%20Token&scopes=repo">
+              Create PAT
+            </a>
+          </>
+        )}
+      </Description>
     </div>
   );
 };

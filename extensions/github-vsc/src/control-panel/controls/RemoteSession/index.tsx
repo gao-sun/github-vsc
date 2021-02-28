@@ -20,7 +20,7 @@ import { defaultShell } from '@src/core/consts/session';
 import { availableRunners, Props, SessionMethod, sessionOptions } from './foundation';
 import { getRefKey } from '@src/core/utils/git-ref';
 
-const RemoteSession = ({ repoData, sessionData }: Props) => {
+const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -102,6 +102,22 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
   const newTerminal = () => {
     vscodeApi.postMessage({ action: WebviewActionEnum.ActivateTerminal, payload: { shell } });
   };
+  const patNote =
+    'Note repo access is required for your PAT to fork runner repo and dispatch GitHub Actions workflow.';
+
+  if (!userContext) {
+    return (
+      <div className={styles.remoteSession}>
+        <Title>Remote Session</Title>
+        <Description>
+          Setup PAT to start remote session.
+          <br />
+          <br />
+          {patNote}
+        </Description>
+      </div>
+    );
+  }
 
   if (!repoData?.ref) {
     return (
@@ -118,7 +134,10 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
       {runnerStatusData.runnerStatus !== RunnerStatus.SessionStarted && (
         <>
           <Description>
-            Start a remote session to enable terminal access on {getRefKey(repoData.ref)}.
+            Start a remote session to enable terminal access on {getRefKey(repoData.ref)}.<br />
+            <br />
+            {patNote}
+            <br />
           </Description>
           <RadioGroup
             options={sessionOptions}

@@ -1,8 +1,9 @@
-import { RepoData, SessionData } from '@core/types/foundation';
+import { RepoData, SessionData, UserContext } from '@core/types/foundation';
 
 export type Props = {
   repoData?: RepoData;
   sessionData?: SessionData;
+  userContext?: UserContext;
 };
 
 export enum SessionMethod {

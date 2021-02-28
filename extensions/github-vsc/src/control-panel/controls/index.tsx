@@ -30,7 +30,11 @@ const App = () => {
   return (
     <div className={styles.app}>
       <PAT token={data?.userContext?.pat}></PAT>
-      <RemoteSession repoData={data?.repoData} sessionData={sessionData}></RemoteSession>
+      <RemoteSession
+        repoData={data?.repoData}
+        sessionData={sessionData}
+        userContext={data?.userContext}
+      ></RemoteSession>
       <SourceControl repoData={data?.repoData} userContext={data?.userContext}></SourceControl>
     </div>
   );
