@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { WebviewActionEnum } from '@src/core/types/webview-action';
 import useListenMessage from '@core/hooks/useListenMessage';
 import { vscodeApi } from '@core/utils/vscode';
-import { getRefKey } from '@core/utils/ref';
+import { getRefKey } from '@core/utils/git-ref';
 
 import PAT from './PAT';
 import SourceControl from './SourceControl';

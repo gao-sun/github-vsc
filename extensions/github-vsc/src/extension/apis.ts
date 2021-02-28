@@ -11,7 +11,7 @@ import {
   GitHubLocation,
   GitHubTreeItem,
 } from './github-fs/types';
-import { buildRef } from './utils/git-ref';
+import { buildRef } from '../core/utils/git-ref';
 
 let octokit = new Octokit();
 

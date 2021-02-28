@@ -27,7 +27,9 @@ select {
   border-radius: 2px;
   outline: none;
   flex-grow: 1;
-  padding: 4px 8px;
+  padding: 0 8px;
+  height: 27px;
+  line-height: 27px;
 
   &:disabled {
     opacity: 0.8;

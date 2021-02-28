@@ -1,6 +1,6 @@
 import { VSCodeData } from '@core/types/foundation';
 import { GitHubRef, SessionData } from '@src/core/types/foundation';
-import { getRefKey } from '@src/core/utils/ref';
+import { getRefKey } from '@src/core/utils/git-ref';
 import { ExtensionContext } from 'vscode';
 
 export const getState = (context: ExtensionContext): ExtensionContext['globalState'] =>

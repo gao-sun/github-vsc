@@ -28,8 +28,9 @@ import { SessionData } from '@src/core/types/foundation';
 import { RunnerStatus } from './types';
 import { conditional } from '../utils/object';
 import { RunnerStatusData } from '@src/core/types/session';
-import { setSessionData } from '../utils/global-state';
+import { getSessionData, setSessionData } from '../utils/global-state';
 import dayjs, { Dayjs } from 'dayjs';
+import { getRefKey } from '@src/core/utils/git-ref';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -157,6 +158,21 @@ export class RemoteSession implements Disposable {
 
   // MARK: session control
   async connectTo(data: SessionData): Promise<boolean> {
+    const existingSession = getSessionData(this._extensionContext, data.githubRef);
+    if (existingSession?.sessionId && existingSession.sessionId !== data.sessionId) {
+      const answer = await vsCodeWindow.showInformationMessage(
+        `A session for ${getRefKey(data.githubRef)} already exists (${
+          existingSession.sessionId
+        }). It will NOT be automatically terminated until you cancel your GitHub Actions workflow or terminate from here.`,
+        { modal: true },
+        'Continue',
+      );
+      if (answer !== 'Continue') {
+        this.runnerStatus = RunnerStatus.Disconnected;
+        return false;
+      }
+    }
+
     this.socket?.disconnect();
     this._data = data;
 

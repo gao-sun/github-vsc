@@ -65,7 +65,7 @@ import {
   openControlPanel,
 } from './message';
 import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
-import { getShortenRef } from '../utils/git-ref';
+import { getShortenRef } from '../../core/utils/git-ref';
 
 export class GitHubFS
   implements

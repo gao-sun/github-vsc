@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Description from '@/components/Description';
 import Title from '@/components/Title';
 import { vscodeApi } from '@core/utils/vscode';
-import { RepoData, SessionData, SessionOS } from '@core/types/foundation';
+import { SessionData, SessionOS } from '@core/types/foundation';
 import { RemoteSessionDataPayload, WebviewActionEnum } from '@src/core/types/webview-action';
 
 import styles from './index.module.scss';
@@ -17,26 +17,8 @@ import { RunnerClientStatus } from '@github-vsc-runner/core';
 import classNames from 'classnames';
 import { RunnerStatusData } from '@src/core/types/session';
 import { defaultShell } from '@src/core/consts/session';
-
-export type Props = {
-  repoData?: RepoData;
-  sessionData?: SessionData;
-};
-
-export enum SessionMethod {
-  StartNew = 'Start',
-  Resume = 'Resume',
-}
-
-export type SessionOption = {
-  value: SessionMethod;
-  message: string;
-};
-
-const sessionOptions: readonly SessionOption[] = Object.freeze([
-  { value: SessionMethod.StartNew, message: 'Start a new session.' },
-  { value: SessionMethod.Resume, message: 'Resume an existing session.' },
-]);
+import { availableRunners, Props, SessionMethod, sessionOptions } from './foundation';
+import { getNormalRef, getRefKey } from '@src/core/utils/git-ref';
 
 const RemoteSession = ({ repoData, sessionData }: Props) => {
   const [loading, setLoading] = useState(false);
@@ -67,14 +49,15 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
   }, []);
 
   useEffect(() => {
-    if (sessionData?.sessionId && !sessionId) {
+    if (sessionData?.sessionId) {
       setServerAddress(sessionData.serverAddress);
       setSessionId(sessionData.sessionId);
       setSessionMethod(SessionMethod.Resume);
-    } else if (!sessionData?.sessionId) {
+    } else {
       setSessionId('');
+      setSessionMethod(SessionMethod.StartNew);
     }
-  }, [sessionData?.serverAddress, sessionData?.sessionId, sessionId]);
+  }, [sessionData]);
 
   useListenMessage(({ action, payload }) => {
     if (action === WebviewActionEnum.RemoteSessionData) {
@@ -89,7 +72,7 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
         setError(message ?? 'Error occurred.');
         setLoading(false);
       }
-      if (runnerStatusData.runnerStatus === RunnerStatus.SessionStarted) {
+      if (runnerStatusData.runnerStatus !== RunnerStatus.Connected) {
         setLoading(false);
       }
     }
@@ -116,12 +99,23 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
     vscodeApi.postMessage({ action: WebviewActionEnum.ActivateTerminal, payload: { shell } });
   };
 
+  if (!repoData?.ref) {
+    return (
+      <div className={styles.remoteSession}>
+        <Title>Remote Session</Title>
+        <Description>Connect to a GitHub repo to start remote session.</Description>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.remoteSession}>
       <Title>Remote Session</Title>
       {runnerStatusData.runnerStatus !== RunnerStatus.SessionStarted && (
         <>
-          <Description>Start a remote session to enable terminal access.</Description>
+          <Description>
+            Start a remote session to enable terminal access on {getRefKey(repoData.ref)}.
+          </Description>
           <RadioGroup
             options={sessionOptions}
             onChange={setSessionMethod}
@@ -136,7 +130,11 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
             value={serverAddress}
             onChange={({ target: { value } }) => setServerAddress(value)}
           >
-            <option value="ws://localhost:3000">localhost:3000</option>
+            {availableRunners.map(({ name, address }) => (
+              <option key={name} value={address}>
+                {name}
+              </option>
+            ))}
           </select>
           {sessionMethod === SessionMethod.StartNew && (
             <>
@@ -213,18 +211,22 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
               Disconnect
             </Button>
           </div>
-          <Title level={3}>Terminal</Title>
-          <div className={classNames(styles.row, styles.terminal)}>
-            <input
-              type="text"
-              placeholder="Shell file"
-              value={shell}
-              onChange={({ target: { value } }) => setShell(value)}
-            ></input>
-            <Button disabled={loading} onClick={newTerminal}>
-              New Terminal
-            </Button>
-          </div>
+          {runnerStatusData.runnerClientStatus === RunnerClientStatus.Online && (
+            <>
+              <Title level={3}>Terminal</Title>
+              <div className={classNames(styles.row, styles.terminal)}>
+                <input
+                  type="text"
+                  placeholder="Shell file"
+                  value={shell}
+                  onChange={({ target: { value } }) => setShell(value)}
+                ></input>
+                <Button disabled={loading} onClick={newTerminal}>
+                  New Terminal
+                </Button>
+              </div>
+            </>
+          )}
         </>
       )}
       {error && <Tip type="warning">{error}</Tip>}

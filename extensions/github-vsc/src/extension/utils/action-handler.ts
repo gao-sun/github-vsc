@@ -18,7 +18,7 @@ import {
 } from '../apis';
 import { CommitMethod, GitHubRef, RepoData, UserContext, VSCodeData } from '@core/types/foundation';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
-import { buildFullRef, buildRef, getShortenRef } from './git-ref';
+import { buildFullRef, buildRef, getShortenRef } from '../../core/utils/git-ref';
 import { lookupAsFile } from '../github-fs/lookup';
 import { Directory, File, GitFileType } from '../github-fs/types';
 import dayjs from 'dayjs';

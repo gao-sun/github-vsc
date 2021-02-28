@@ -31,7 +31,9 @@ export class ControlPanelView implements WebviewViewProvider {
     // TO-DO: refactor
     if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
       const payload = action.payload as SessionData;
-      this._remoteSession.connectTo(payload);
+      if (await this._remoteSession.connectTo(payload)) {
+        postUpdateData(this.webview, getVSCodeData(this._extensionContext));
+      }
     }
 
     if (action.action === WebviewActionEnum.RequestRemoteRessionData) {
