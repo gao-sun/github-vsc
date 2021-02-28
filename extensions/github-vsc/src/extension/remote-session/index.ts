@@ -102,6 +102,15 @@ export class RemoteSession implements Disposable {
     }
   }
 
+  private resetRunnerStatus(runnerStatus = RunnerStatus.Disconnected) {
+    this.setPartialRunnerStatusData({
+      sessionId: undefined,
+      runnerStatus,
+      runnerClientStatus: RunnerClientStatus.Offline,
+      runnerClientOS: undefined,
+    });
+  }
+
   constructor(
     extensionContext: ExtensionContext,
     onUpdate: (payload: RemoteSessionDataPayload) => void,
@@ -131,7 +140,7 @@ export class RemoteSession implements Disposable {
       });
     }
 
-    if (data.runnerStatus === RunnerStatus.Disconnected) {
+    if ([RunnerStatus.Disconnected, RunnerStatus.Connecting].includes(data.runnerStatus)) {
       onUpdate({ ...data, type: 'message' });
     }
 
@@ -139,7 +148,15 @@ export class RemoteSession implements Disposable {
       onUpdate({
         ...data,
         type: 'error',
-        message: 'Connection timeout.',
+        message: 'Connection timeout. Please try another runner.',
+      });
+    }
+
+    if (data.runnerStatus === RunnerStatus.SessionTerminated) {
+      onUpdate({
+        ...data,
+        type: 'error',
+        message: 'Session has been terminated, please create a new one if needed.',
       });
     }
 
@@ -180,11 +197,12 @@ export class RemoteSession implements Disposable {
       const socket = io(data.serverAddress);
       const timeoutHandle = setTimeout(() => {
         if (
-          this.runnerStatus === RunnerStatus.Disconnected ||
-          this.runnerStatus === RunnerStatus.Connected
+          [RunnerStatus.Disconnected, RunnerStatus.Connected, RunnerStatus.Connecting].includes(
+            this.runnerStatus,
+          )
         ) {
           socket.disconnect();
-          this.runnerStatus = RunnerStatus.SessionTimeout;
+          this.resetRunnerStatus(RunnerStatus.SessionTimeout);
           resolve(false);
         }
       }, 20000);
@@ -196,7 +214,7 @@ export class RemoteSession implements Disposable {
 
       this.setPartialRunnerStatusData({
         sessionId: data.sessionId,
-        runnerStatus: RunnerStatus.Disconnected,
+        runnerStatus: RunnerStatus.Connecting,
         runnerClientStatus: RunnerClientStatus.Offline,
       });
       this.socket = socket;
@@ -216,16 +234,18 @@ export class RemoteSession implements Disposable {
         console.log('runner disconnected');
 
         this.terminals = [];
-        if (this.runnerStatus !== RunnerStatus.SessionTimeout) {
-          this.setPartialRunnerStatusData({
-            sessionId: undefined,
-            runnerStatus: RunnerStatus.Disconnected,
-            runnerClientStatus: RunnerClientStatus.Offline,
-            runnerClientOS: undefined,
-          });
+        if ([RunnerStatus.Connected, RunnerStatus.SessionStarted].includes(this.runnerStatus)) {
+          this.resetRunnerStatus(RunnerStatus.Disconnected);
         }
 
         clearTimeoutHandleIfNeeded();
+      });
+
+      socket.on(RunnerServerEvent.SessionTerminated, () => {
+        clearTimeoutHandleIfNeeded();
+        socket.disconnect();
+        this.resetRunnerStatus(RunnerStatus.SessionTerminated);
+        setSessionData(this._extensionContext, data.githubRef, undefined);
       });
 
       socket.on(RunnerServerEvent.SessionStarted, (sessionId: string) => {
@@ -271,7 +291,9 @@ export class RemoteSession implements Disposable {
 
   async terminate(): Promise<boolean> {
     const answer = await vsCodeWindow.showWarningMessage(
-      'Runner client will be terminated and all un-pushed changes will be discarded. Continue?',
+      `Runner client for ${getRefKey(
+        this._data?.githubRef,
+      )} will be terminated and all un-pushed changes will be discarded. Continue?`,
       { modal: true },
       'OK',
     );

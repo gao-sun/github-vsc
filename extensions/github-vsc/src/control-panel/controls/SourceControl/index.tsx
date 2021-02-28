@@ -16,6 +16,7 @@ import { conditionalString } from '@src/extension/utils/object';
 import { getFileName } from '@core/utils/path';
 import useListenMessage from '@core/hooks/useListenMessage';
 import RadioGroup from '@/components/RadioGroup';
+import { getNormalRef } from '@src/core/utils/git-ref';
 
 type CommitOption = {
   value: CommitMethod;
@@ -132,7 +133,7 @@ const SourceControl = ({ repoData, userContext }: Props) => {
       </Description>
       {!changedFiles.length && (
         <Description>
-          {`You have no changed files on '${ref}'.`}
+          {`You have no changed files on '${getNormalRef(ref)}'.`}
           <br />
           Changes are required to start committing.
         </Description>

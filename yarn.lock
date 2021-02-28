@@ -39,10 +39,10 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
-"@github-vsc-runner/core@^1.0.0-alpha.4":
-  version "1.0.0-alpha.4"
-  resolved "https://registry.yarnpkg.com/@github-vsc-runner/core/-/core-1.0.0-alpha.4.tgz#d79494c56014ac7163bb10ea12e51d4ee18cdcc4"
-  integrity sha512-4Gshwf4bElaZr9aHq2OWVvxibiJWj5NCH2ZHcUA5wOWRTwkTMI+X+lYP32qsZITaduNZdFj8dx0XDf8iTlMvKw==
+"@github-vsc-runner/core@^1.0.0-alpha.5":
+  version "1.0.0-alpha.5"
+  resolved "https://registry.yarnpkg.com/@github-vsc-runner/core/-/core-1.0.0-alpha.5.tgz#5022a580a9b691db4a8a403fa157414e583093ed"
+  integrity sha512-B2s3P1dQz34UQgW4lluvUlRHsYk15TWqi15q2mmZxulGfDEt/VNjPEoKg85ye9b2y13oPC67vJr6ZM+PLIQJ0g==
 
 accepts@~1.3.7:
   version "1.3.7"

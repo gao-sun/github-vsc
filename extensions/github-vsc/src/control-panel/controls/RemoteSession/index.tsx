@@ -18,7 +18,7 @@ import classNames from 'classnames';
 import { RunnerStatusData } from '@src/core/types/session';
 import { defaultShell } from '@src/core/consts/session';
 import { availableRunners, Props, SessionMethod, sessionOptions } from './foundation';
-import { getNormalRef, getRefKey } from '@src/core/utils/git-ref';
+import { getRefKey } from '@src/core/utils/git-ref';
 
 const RemoteSession = ({ repoData, sessionData }: Props) => {
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
   useEffect(() => {
     if (sessionData?.defaultShell || runnerClientOS) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      setShell(sessionData?.defaultShell ?? defaultShell[runnerClientOS!]);
+      setShell(sessionData?.defaultShell ?? defaultShell[runnerClientOS!] ?? '');
     }
   }, [runnerClientOS, sessionData?.defaultShell]);
 
@@ -66,13 +66,17 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
       setRunnerStatusData(runnerStatusData);
 
       if (type === 'message') {
+        setError('');
         setMessage(message ?? '');
       }
       if (type === 'error') {
         setError(message ?? 'Error occurred.');
+        setMessage('');
         setLoading(false);
       }
-      if (runnerStatusData.runnerStatus !== RunnerStatus.Connected) {
+      if (
+        ![RunnerStatus.Connected, RunnerStatus.Connecting].includes(runnerStatusData.runnerStatus)
+      ) {
         setLoading(false);
       }
     }
