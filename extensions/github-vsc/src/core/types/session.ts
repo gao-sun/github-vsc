@@ -26,8 +26,8 @@ export const allRunners: readonly RunnerServer[] = Object.freeze([
     type: RunnerServerType.Dev,
   },
   {
-    name: 'Actions Runner (Shanghai)',
-    address: 'wss://runner-sh.github-vsc.com',
+    name: 'Actions Runner (Japan)',
+    address: 'wss://runner-jp.github-vsc.com:3000',
     type: RunnerServerType.GitHubActions,
   },
   {

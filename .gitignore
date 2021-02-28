@@ -8,3 +8,4 @@ app/dist/
 app/lib/
 app/github-vsc.js
 yarn-error.log
+cert/
