@@ -27,7 +27,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const [workflowRef, setWorkflowRef] = useState<GitHubRef>();
   const [sessionId, setSessionId] = useState('');
   const [shell, setShell] = useState('');
-  const [serverAddress, setServerAddress] = useState('ws://localhost:3000');
+  const [serverAddress, setServerAddress] = useState(availableRunners[0].address);
   const [newSessionOS, setNewSessionOS] = useState(RunnerClientOS.Ubuntu_20_04);
   const [sessionMethod, setSessionMethod] = useState(SessionMethod.StartNew);
   const [runnerStatusData, setRunnerStatusData] = useState<RunnerStatusData>({
