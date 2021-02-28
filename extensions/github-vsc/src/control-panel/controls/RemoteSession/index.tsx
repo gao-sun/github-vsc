@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Description from '@/components/Description';
 import Title from '@/components/Title';
 import { vscodeApi } from '@core/utils/vscode';
-import { SessionData, SessionOS } from '@core/types/foundation';
+import { SessionData } from '@core/types/foundation';
 import { RemoteSessionDataPayload, WebviewActionEnum } from '@src/core/types/webview-action';
 
 import styles from './index.module.scss';
@@ -13,7 +13,7 @@ import Tip from '@/components/Tip';
 import useListenMessage from '@src/core/hooks/useListenMessage';
 import { RunnerStatus } from '@src/extension/remote-session/types';
 import { conditional } from '@src/extension/utils/object';
-import { RunnerClientStatus } from '@github-vsc-runner/core';
+import { RunnerClientOS, RunnerClientStatus } from '@github-vsc-runner/core';
 import classNames from 'classnames';
 import { RunnerStatusData } from '@src/core/types/session';
 import { defaultShell } from '@src/core/consts/session';
@@ -27,7 +27,7 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
   const [sessionId, setSessionId] = useState('');
   const [shell, setShell] = useState('');
   const [serverAddress, setServerAddress] = useState('ws://localhost:3000');
-  const [newSessionOS, setNewSessionOS] = useState(SessionOS.Ubuntu);
+  const [newSessionOS, setNewSessionOS] = useState(RunnerClientOS.Ubuntu_20_04);
   const [sessionMethod, setSessionMethod] = useState(SessionMethod.StartNew);
   const [runnerStatusData, setRunnerStatusData] = useState<RunnerStatusData>({
     runnerStatus: RunnerStatus.Disconnected,
@@ -148,10 +148,10 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
                 name="runner-client-os"
                 value={newSessionOS}
                 onChange={({ target: { value } }) => {
-                  setNewSessionOS(value as SessionOS);
+                  setNewSessionOS(value as RunnerClientOS);
                 }}
               >
-                {Object.entries(SessionOS).map(([key, os]) => (
+                {Object.entries(RunnerClientOS).map(([key, os]) => (
                   <option key={key} value={os}>
                     {os}
                   </option>

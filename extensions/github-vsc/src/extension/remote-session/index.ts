@@ -13,10 +13,11 @@ import {
   TerminalOptions,
   RunnerClientEvent,
   RunnerClientStatus,
+  RunnerClientOS,
 } from '@github-vsc-runner/core';
 import { nanoid } from 'nanoid';
 
-import { SessionOS, TerminalData } from '@core/types/foundation';
+import { TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
   ActivateTerminalPayload,
@@ -335,7 +336,7 @@ export class RemoteSession implements Disposable {
     });
     this.socket?.on(
       RunnerServerEvent.RunnerStatus,
-      (runnerClientStatus: RunnerClientStatus, runnerClientOS: SessionOS) => {
+      (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
         this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
       },
     );

@@ -1,3 +1,4 @@
+import { RunnerClientOS } from '@github-vsc-runner/core';
 import { Uri } from 'vscode';
 
 export type GitHubRef = {
@@ -37,16 +38,10 @@ export type TerminalData = {
   data: string | Uint8Array;
 };
 
-export enum SessionOS {
-  Ubuntu = 'Ubuntu',
-  macOS = 'macOS',
-  Windows = 'Windows',
-}
-
 export type SessionData = {
   githubRef?: GitHubRef;
   sessionId?: string;
   serverAddress: string;
-  os?: SessionOS;
+  os?: RunnerClientOS;
   defaultShell?: string;
 };
