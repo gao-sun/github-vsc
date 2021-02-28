@@ -12,6 +12,7 @@ import {
   GitHubTreeItem,
 } from './github-fs/types';
 import { buildRef } from '../core/utils/git-ref';
+import { RunnerClientOS } from '@github-vsc-runner/core';
 
 let octokit = new Octokit();
 
@@ -203,3 +204,19 @@ export const isForkReady = async (owner: string, repo: string): Promise<boolean>
   }
   return true;
 };
+
+export const dispatchRunnerWorkflow = (
+  owner: string,
+  repo: string,
+  ref: string,
+  serverAddress: string,
+  os: RunnerClientOS,
+  sessionId: string,
+): Promise<RestEndpointMethodTypes['actions']['createWorkflowDispatch']['response']> =>
+  octokit.actions.createWorkflowDispatch({
+    owner,
+    repo,
+    workflow_id: 'runner-client.yml',
+    ref,
+    inputs: { serverAddress, os, sessionId },
+  });

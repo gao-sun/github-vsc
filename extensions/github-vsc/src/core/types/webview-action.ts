@@ -1,5 +1,5 @@
 import { ITerminalDimensions } from 'xterm-addon-fit';
-import { CommitMethod } from './foundation';
+import { CommitMethod, GitHubRef } from './foundation';
 import { RunnerStatusData } from './session';
 
 export enum WebviewActionEnum {
@@ -39,6 +39,7 @@ export type TerminalDimensionsPayload = ITerminalDimensions & {
 export type RemoteSessionDataPayload = RunnerStatusData & {
   type: 'message' | 'error';
   message?: string;
+  workflowRef?: GitHubRef;
 };
 
 export default interface WebviewAction {

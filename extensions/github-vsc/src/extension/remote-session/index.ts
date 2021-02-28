@@ -17,7 +17,7 @@ import {
 } from '@github-vsc-runner/core';
 import { nanoid } from 'nanoid';
 
-import { TerminalData } from '@core/types/foundation';
+import { GitHubRef, TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
   ActivateTerminalPayload,
@@ -28,10 +28,11 @@ import WebviewAction, {
 import { SessionData } from '@src/core/types/foundation';
 import { RunnerStatus } from './types';
 import { conditional } from '../utils/object';
-import { RunnerStatusData } from '@src/core/types/session';
+import { RunnerStatusData, allRunners, RunnerServerType } from '@src/core/types/session';
 import { getSessionData, setSessionData } from '../utils/global-state';
 import dayjs, { Dayjs } from 'dayjs';
 import { getRefKey } from '@src/core/utils/git-ref';
+import { launchRunnerClient, MessageDelivery } from './launch-runner';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -174,6 +175,41 @@ export class RemoteSession implements Disposable {
     }
   }
 
+  // MARK: setup runner client
+  private async launchRunnerClient() {
+    // skip non GitHub Actions client
+    // support customization in the future, if this project gets a lot of stars :-)
+    if (
+      allRunners.find(({ address }) => this._data?.serverAddress === address)?.type !==
+      RunnerServerType.GitHubActions
+    ) {
+      return;
+    }
+
+    const postNoDataMessage = () =>
+      this._onUpdate({
+        ...this.runnerStatusData,
+        type: 'error',
+        message: 'No sufficient data to launch runner client, please check your inputs.',
+      });
+
+    if (!this._data) {
+      postNoDataMessage();
+      return;
+    }
+
+    const { githubRef, os, serverAddress, sessionId } = this._data;
+    if (!githubRef || !os || !serverAddress || !sessionId) {
+      postNoDataMessage();
+      return;
+    }
+
+    const deliverMessage: MessageDelivery = (message, type = 'message', workflowRef) => {
+      this._onUpdate({ ...this.runnerStatusData, type, message, workflowRef });
+    };
+    await launchRunnerClient(deliverMessage, serverAddress, os, sessionId);
+  }
+
   // MARK: session control
   async connectTo(data: SessionData): Promise<boolean> {
     const existingSession = getSessionData(this._extensionContext, data.githubRef);
@@ -181,7 +217,7 @@ export class RemoteSession implements Disposable {
       const answer = await vsCodeWindow.showInformationMessage(
         `A session for ${getRefKey(data.githubRef)} already exists (${
           existingSession.sessionId
-        }). It will NOT be automatically terminated until you cancel your GitHub Actions workflow or terminate from here.`,
+        }).\nIt will NOT be terminated until you cancel your GitHub Actions workflow or manually terminate after resuming the session here.\n\nContinue to create a new session?`,
         { modal: true },
         'Continue',
       );
@@ -269,17 +305,21 @@ export class RemoteSession implements Disposable {
         this.registerSocketEventListeners();
         console.log('session started', sessionId);
 
-        if (this.sessionId) {
-          this.retrieveRunnerInfo();
-        }
-
-        this.sessionId = sessionId;
         this.runnerStatus = RunnerStatus.SessionStarted;
         this.setPartialRunnerStatusData({
           sessionId,
           runnerStatus: RunnerStatus.SessionStarted,
         });
         setSessionData(this._extensionContext, data.githubRef, { ...data, sessionId });
+
+        const isNewSession = !!this.sessionId;
+        this.sessionId = sessionId;
+
+        if (isNewSession) {
+          this.retrieveRunnerInfo();
+        } else {
+          this.launchRunnerClient();
+        }
         resolve(true);
       });
     });

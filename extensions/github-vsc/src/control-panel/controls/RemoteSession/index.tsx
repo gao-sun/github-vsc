@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Description from '@/components/Description';
 import Title from '@/components/Title';
 import { vscodeApi } from '@core/utils/vscode';
-import { SessionData } from '@core/types/foundation';
+import { GitHubRef, SessionData } from '@core/types/foundation';
 import { RemoteSessionDataPayload, WebviewActionEnum } from '@src/core/types/webview-action';
 
 import styles from './index.module.scss';
@@ -15,15 +15,16 @@ import { RunnerStatus } from '@src/extension/remote-session/types';
 import { conditional } from '@src/extension/utils/object';
 import { RunnerClientOS, RunnerClientStatus } from '@github-vsc-runner/core';
 import classNames from 'classnames';
-import { RunnerStatusData } from '@src/core/types/session';
 import { defaultShell } from '@src/core/consts/session';
-import { availableRunners, Props, SessionMethod, sessionOptions } from './foundation';
+import { Props, SessionMethod, sessionOptions } from './foundation';
 import { getRefKey } from '@src/core/utils/git-ref';
+import { availableRunners, RunnerStatusData } from '@src/core/types/session';
 
 const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [workflowRef, setWorkflowRef] = useState<GitHubRef>();
   const [sessionId, setSessionId] = useState('');
   const [shell, setShell] = useState('');
   const [serverAddress, setServerAddress] = useState('ws://localhost:3000');
@@ -33,7 +34,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
     runnerStatus: RunnerStatus.Disconnected,
     runnerClientStatus: RunnerClientStatus.Offline,
   });
-  const { runnerClientOS } = runnerStatusData;
+  const { runnerStatus, runnerClientStatus, runnerClientOS } = runnerStatusData;
 
   useEffect(() => {
     if (sessionData?.defaultShell || runnerClientOS) {
@@ -61,13 +62,19 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
 
   useListenMessage(({ action, payload }) => {
     if (action === WebviewActionEnum.RemoteSessionData) {
-      const { type, message, ...runnerStatusData } = payload as RemoteSessionDataPayload;
+      const {
+        type,
+        message,
+        workflowRef,
+        ...runnerStatusData
+      } = payload as RemoteSessionDataPayload;
 
       setRunnerStatusData(runnerStatusData);
 
       if (type === 'message') {
         setError('');
         setMessage(message ?? '');
+        setWorkflowRef(workflowRef);
       }
       if (type === 'error') {
         setError(message ?? 'Error occurred.');
@@ -89,6 +96,12 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       serverAddress,
       os: conditional(sessionMethod === SessionMethod.StartNew && newSessionOS),
     };
+
+    if (sessionMethod === SessionMethod.Resume && !sessionId) {
+      setError('Session ID is required.');
+      return;
+    }
+
     console.log('trying to connect with payload', payload);
     vscodeApi.postMessage({ action: WebviewActionEnum.ConnectToRemoteSession, payload });
     setLoading(true);
@@ -98,12 +111,15 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
     vscodeApi.postMessage({ action: WebviewActionEnum.DisconnectRemoteRession });
   const terminateSession = () =>
     vscodeApi.postMessage({ action: WebviewActionEnum.TerminateRemoteRession });
-
   const newTerminal = () => {
     vscodeApi.postMessage({ action: WebviewActionEnum.ActivateTerminal, payload: { shell } });
   };
   const patNote =
     'Note repo access is required for your PAT to fork runner repo and dispatch GitHub Actions workflow.';
+  const shouldShowWorkflowRef =
+    workflowRef &&
+    runnerStatus === RunnerStatus.SessionStarted &&
+    runnerClientStatus === RunnerClientStatus.Offline;
 
   if (!userContext) {
     return (
@@ -131,7 +147,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   return (
     <div className={styles.remoteSession}>
       <Title>Remote Session</Title>
-      {runnerStatusData.runnerStatus !== RunnerStatus.SessionStarted && (
+      {runnerStatus !== RunnerStatus.SessionStarted && (
         <>
           <Description>
             Start a remote session to enable terminal access on {getRefKey(repoData.ref)}.<br />
@@ -196,7 +212,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
           </div>
         </>
       )}
-      {runnerStatusData.runnerStatus === RunnerStatus.SessionStarted && (
+      {runnerStatus === RunnerStatus.SessionStarted && (
         <>
           <div className={styles.row}>
             <Title level={3} noMargin>
@@ -208,22 +224,22 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
             <Title level={3} noMargin>
               Runner Client
             </Title>
-            <Description noMargin>{runnerStatusData.runnerClientStatus}</Description>
+            <Description noMargin>{runnerClientStatus}</Description>
           </div>
-          {runnerStatusData.runnerClientOS && (
+          {runnerClientOS && (
             <div className={styles.row}>
               <Title level={3} noMargin>
                 OS
               </Title>
-              <Description noMargin>{runnerStatusData.runnerClientOS}</Description>
+              <Description noMargin>{runnerClientOS}</Description>
             </div>
           )}
-          {runnerStatusData.sessionId && (
+          {sessionId && (
             <div className={styles.row}>
               <Title level={3} noMargin>
                 Session ID
               </Title>
-              <Description noMargin>{runnerStatusData.sessionId}</Description>
+              <Description noMargin>{sessionId}</Description>
             </div>
           )}
           <div className={classNames(styles.action, styles.unplug)}>
@@ -234,7 +250,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
               Disconnect
             </Button>
           </div>
-          {runnerStatusData.runnerClientStatus === RunnerClientStatus.Online && (
+          {runnerClientStatus === RunnerClientStatus.Online && (
             <>
               <Title level={3}>Terminal</Title>
               <div className={classNames(styles.row, styles.terminal)}>
@@ -253,7 +269,22 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
         </>
       )}
       {error && <Tip type="warning">{error}</Tip>}
-      {(loading || message) && !error && <Tip>{message || 'Connecting...'}</Tip>}
+      {(loading || message) && !error && (
+        <Tip>
+          {message || 'Connecting...'}
+          {shouldShowWorkflowRef && (
+            <>
+              <br />
+              <a
+                href={`https://github.com/${workflowRef?.owner}/${workflowRef?.repo}/actions/workflows/runner-client.yml`}
+              >
+                Click here
+              </a>
+              &nbsp; to check your workflow status.
+            </>
+          )}
+        </Tip>
+      )}
     </div>
   );
 };
