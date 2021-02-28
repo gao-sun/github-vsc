@@ -78,8 +78,8 @@ export class RemoteSession implements Disposable {
 
   set terminals(terminals: TerminalInstance[]) {
     this._terminals = terminals;
-    this.postTerminalsToWebview();
     this.setupPanelIfNeeded();
+    this.postTerminalsToWebview();
   }
 
   get terminals(): TerminalInstance[] {
@@ -128,6 +128,10 @@ export class RemoteSession implements Disposable {
           this.sessionId ? `Resuming session ${this.sessionId}` : 'Reuqesting new session'
         }...`,
       });
+    }
+
+    if (data.runnerStatus === RunnerStatus.Disconnected) {
+      onUpdate({ ...data, type: 'message' });
     }
 
     if (data.runnerStatus === RunnerStatus.SessionTimeout) {
@@ -195,8 +199,14 @@ export class RemoteSession implements Disposable {
       socket.on('disconnect', () => {
         console.log('runner disconnected');
 
+        this.terminals = [];
         if (this.runnerStatus !== RunnerStatus.SessionTimeout) {
-          this.runnerStatus = RunnerStatus.Disconnected;
+          this.setPartialRunnerStatusData({
+            sessionId: undefined,
+            runnerStatus: RunnerStatus.Disconnected,
+            runnerClientStatus: RunnerClientStatus.Offline,
+            runnerClientOS: undefined,
+          });
         }
 
         clearTimeoutHandleIfNeeded();
@@ -238,12 +248,26 @@ export class RemoteSession implements Disposable {
     });
   }
 
-  private postTerminalData(terminalId: string, data: unknown) {
-    const action = {
-      action: WebviewActionEnum.TerminalStdout,
-      payload: { terminalId, data },
-    };
-    this._panel?.webview.postMessage(action);
+  disconnect(): void {
+    this.socket?.disconnect();
+    this.sessionId = undefined;
+  }
+
+  async terminate(): Promise<boolean> {
+    const answer = await vsCodeWindow.showWarningMessage(
+      'Runner client will be terminated and all un-pushed changes will be discarded. Continue?',
+      { modal: true },
+      'OK',
+    );
+
+    if (answer === 'OK') {
+      setSessionData(this._extensionContext, this._data?.githubRef, undefined);
+      this.socket?.emit(VscClientEvent.TerminateSession);
+      this.disconnect();
+      return true;
+    }
+
+    return false;
   }
 
   private registerSocketEventListeners() {
@@ -301,17 +325,26 @@ export class RemoteSession implements Disposable {
     }
   };
 
+  private retrieveRunnerInfo() {
+    this.socket?.emit(VscClientEvent.CheckRunnerStatus);
+    this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
+  }
+
+  // MARK: terminal
+  private postTerminalData(terminalId: string, data: unknown) {
+    const action = {
+      action: WebviewActionEnum.TerminalStdout,
+      payload: { terminalId, data },
+    };
+    this._panel?.webview.postMessage(action);
+  }
+
   private postTerminalsToWebview() {
     const action: WebviewAction = {
       action: WebviewActionEnum.SetTerminals,
       payload: this.terminals,
     };
     this._panel?.webview.postMessage(action);
-  }
-
-  private retrieveRunnerInfo() {
-    this.socket?.emit(VscClientEvent.CheckRunnerStatus);
-    this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
   }
 
   activateTerminal(file: string, ignoreIfExists = false): boolean {
@@ -338,9 +371,12 @@ export class RemoteSession implements Disposable {
     return this.activateTerminal(file, true);
   }
 
+  // MARK: panel
   revealPanel(): void {
     if (this._panel) {
-      this._panel.reveal();
+      if (!this._panel.visible) {
+        this._panel.reveal();
+      }
       return;
     }
 
@@ -370,6 +406,7 @@ export class RemoteSession implements Disposable {
   private setupPanelIfNeeded() {
     if (!this.terminals.length) {
       this._panel?.dispose();
+      this._panel = undefined;
     } else {
       this.revealPanel();
     }

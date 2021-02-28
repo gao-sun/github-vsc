@@ -71,6 +71,8 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
       setServerAddress(sessionData.serverAddress);
       setSessionId(sessionData.sessionId);
       setSessionMethod(SessionMethod.Resume);
+    } else if (!sessionData?.sessionId) {
+      setSessionId('');
     }
   }, [sessionData?.serverAddress, sessionData?.sessionId, sessionId]);
 
@@ -104,6 +106,11 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
     vscodeApi.postMessage({ action: WebviewActionEnum.ConnectToRemoteSession, payload });
     setLoading(true);
   };
+
+  const disconnectSession = () =>
+    vscodeApi.postMessage({ action: WebviewActionEnum.DisconnectRemoteRession });
+  const terminateSession = () =>
+    vscodeApi.postMessage({ action: WebviewActionEnum.TerminateRemoteRession });
 
   const newTerminal = () => {
     vscodeApi.postMessage({ action: WebviewActionEnum.ActivateTerminal, payload: { shell } });
@@ -199,10 +206,10 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
             </div>
           )}
           <div className={classNames(styles.action, styles.unplug)}>
-            <Button type="secondary" disabled={loading} onClick={() => {}}>
-              Terminate Session
+            <Button type="secondary" disabled={loading} onClick={terminateSession}>
+              Terminate
             </Button>
-            <Button type="secondary" disabled={loading} onClick={() => {}}>
+            <Button type="secondary" disabled={loading} onClick={disconnectSession}>
               Disconnect
             </Button>
           </div>

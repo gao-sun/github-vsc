@@ -6,8 +6,9 @@ import WebviewAction, {
 import configureWebview from '../utils/configure-webview';
 
 import { RemoteSession } from '../remote-session';
-import { deliverRemoteSessionData } from '../utils/action-handler';
+import { deliverRemoteSessionData, postUpdateData } from '../utils/action-handler';
 import { SessionData } from '@src/core/types/foundation';
+import { getVSCodeData } from '../utils/global-state';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
@@ -26,7 +27,7 @@ export class ControlPanelView implements WebviewViewProvider {
     );
   }
 
-  private handleAction = (action: WebviewAction) => {
+  private handleAction = async (action: WebviewAction) => {
     // TO-DO: refactor
     if (action.action === WebviewActionEnum.ConnectToRemoteSession) {
       const payload = action.payload as SessionData;
@@ -40,6 +41,16 @@ export class ControlPanelView implements WebviewViewProvider {
     if (action.action === WebviewActionEnum.ActivateTerminal) {
       const { shell } = action.payload as ActivateTerminalPayload;
       this._remoteSession.activateTerminal(shell);
+    }
+
+    if (action.action === WebviewActionEnum.DisconnectRemoteRession) {
+      this._remoteSession.disconnect();
+    }
+
+    if (action.action === WebviewActionEnum.TerminateRemoteRession) {
+      if (await this._remoteSession.terminate()) {
+        postUpdateData(this.webview, getVSCodeData(this._extensionContext));
+      }
     }
 
     this._actionHanlder(action);
