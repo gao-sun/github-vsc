@@ -1,5 +1,8 @@
 import { ExtensionContext, Webview, WebviewView, WebviewViewProvider } from 'vscode';
-import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
+import WebviewAction, {
+  ActivateTerminalPayload,
+  WebviewActionEnum,
+} from '@src/core/types/webview-action';
 import configureWebview from '../utils/configure-webview';
 
 import { RemoteSession } from '../remote-session';
@@ -35,7 +38,8 @@ export class ControlPanelView implements WebviewViewProvider {
     }
 
     if (action.action === WebviewActionEnum.ActivateTerminal) {
-      this._remoteSession.activateTerminalIfNeeded();
+      const { shell } = action.payload as ActivateTerminalPayload;
+      this._remoteSession.activateTerminal(shell);
     }
 
     this._actionHanlder(action);

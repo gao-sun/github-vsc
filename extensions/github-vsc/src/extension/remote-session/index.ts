@@ -19,6 +19,7 @@ import { nanoid } from 'nanoid';
 import { SessionOS, TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
+  ActivateTerminalPayload,
   RemoteSessionDataPayload,
   TerminalDimensionsPayload,
   WebviewActionEnum,
@@ -28,13 +29,20 @@ import { RunnerStatus } from './types';
 import { conditional } from '../utils/object';
 import { RunnerStatusData } from '@src/core/types/session';
 import { setSessionData } from '../utils/global-state';
+import dayjs, { Dayjs } from 'dayjs';
+
+type TerminalInstance = TerminalOptions & {
+  activateTime: Dayjs;
+};
+
+const terminalLiveThreshold = 3;
 
 export class RemoteSession implements Disposable {
   // MARK: disposable
   private readonly _extensionContext: ExtensionContext;
   private _panel?: WebviewPanel;
   private _data?: SessionData;
-  private _terminals: TerminalOptions[];
+  private _terminals: TerminalInstance[];
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
   private _runnerStatusData: RunnerStatusData = {
     runnerStatus: RunnerStatus.Disconnected,
@@ -67,12 +75,12 @@ export class RemoteSession implements Disposable {
     this.setPartialRunnerStatusData({ runnerClientStatus });
   }
 
-  set terminals(terminals: TerminalOptions[]) {
+  set terminals(terminals: TerminalInstance[]) {
     this._terminals = terminals;
     this.postTerminalsToWebview();
   }
 
-  get terminals(): TerminalOptions[] {
+  get terminals(): TerminalInstance[] {
     return this._terminals;
   }
 
@@ -231,9 +239,18 @@ export class RemoteSession implements Disposable {
   private registerSocketEventListeners() {
     this.socket?.on(RunnerClientEvent.CurrentTerminals, (terminals: TerminalOptions[]) => {
       console.log('received current terminals', terminals);
-      this.terminals = terminals;
+      this.terminals = terminals.map((terminal) => ({ ...terminal, activateTime: dayjs() }));
     });
     this.socket?.on(RunnerClientEvent.TerminalClosed, (terminalId: string) => {
+      if (
+        (this.terminals.find(({ id }) => id === terminalId)?.activateTime.diff(dayjs(), 'second') ??
+          0) >= -terminalLiveThreshold
+      ) {
+        vsCodeWindow.showWarningMessage(
+          `Terminal closed in ${terminalLiveThreshold} seconds, this may indicates error. Please make sure the shell file exists in the runner client.`,
+        );
+      }
+
       this.terminals = this.terminals.filter(({ id }) => id !== terminalId);
     });
     this.socket?.on(RunnerClientEvent.Stdout, (terminalId: string, data: unknown) => {
@@ -264,7 +281,8 @@ export class RemoteSession implements Disposable {
     }
 
     if (action === WebviewActionEnum.ActivateTerminal) {
-      this.activateTerminal();
+      const { shell } = payload as ActivateTerminalPayload;
+      this.activateTerminal(shell);
     }
 
     if (action === WebviewActionEnum.TerminalSetDimensions) {
@@ -286,18 +304,19 @@ export class RemoteSession implements Disposable {
     this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
   }
 
-  activateTerminal(ignoreIfExists = false): boolean {
+  activateTerminal(file: string, ignoreIfExists = false): boolean {
     if (this.runnerClientStatus === RunnerClientStatus.Offline) {
       return false;
     }
 
     this.createPanelIfNeeded();
     if (!ignoreIfExists || !this.terminals.length) {
-      const options: TerminalOptions = {
+      const options: TerminalInstance = {
         id: nanoid(),
-        file: 'bash',
+        file,
         cols: 80,
         rows: 30,
+        activateTime: dayjs(),
       };
       this.terminals = this.terminals.concat(options);
       this.socket?.emit(VscClientEvent.ActivateTerminal, options);
@@ -305,8 +324,8 @@ export class RemoteSession implements Disposable {
     return true;
   }
 
-  activateTerminalIfNeeded(): boolean {
-    return this.activateTerminal(true);
+  activateTerminalIfNeeded(file: string): boolean {
+    return this.activateTerminal(file, true);
   }
 
   createPanelIfNeeded(): void {

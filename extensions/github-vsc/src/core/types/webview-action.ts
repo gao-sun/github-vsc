@@ -28,6 +28,10 @@ export type ProposeChangesPayload = {
   branchName: string;
 };
 
+export type ActivateTerminalPayload = {
+  shell: string;
+};
+
 export type TerminalDimensionsPayload = ITerminalDimensions & {
   id: string;
 };

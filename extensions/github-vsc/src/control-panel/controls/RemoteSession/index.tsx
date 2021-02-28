@@ -16,6 +16,7 @@ import { conditional } from '@src/extension/utils/object';
 import { RunnerClientStatus } from '@github-vsc-runner/core';
 import classNames from 'classnames';
 import { RunnerStatusData } from '@src/core/types/session';
+import { defaultShell } from '@src/core/consts/session';
 
 export type Props = {
   repoData?: RepoData;
@@ -42,6 +43,7 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState('');
+  const [shell, setShell] = useState('');
   const [serverAddress, setServerAddress] = useState('ws://localhost:3000');
   const [newSessionOS, setNewSessionOS] = useState(SessionOS.Ubuntu);
   const [sessionMethod, setSessionMethod] = useState(SessionMethod.StartNew);
@@ -49,6 +51,14 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
     runnerStatus: RunnerStatus.Disconnected,
     runnerClientStatus: RunnerClientStatus.Offline,
   });
+  const { runnerClientOS } = runnerStatusData;
+
+  useEffect(() => {
+    if (sessionData?.defaultShell || runnerClientOS) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      setShell(sessionData?.defaultShell ?? defaultShell[runnerClientOS!]);
+    }
+  }, [runnerClientOS, sessionData?.defaultShell]);
 
   useEffect(() => {
     vscodeApi.postMessage({
@@ -93,6 +103,10 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
     console.log('trying to connect with payload', payload);
     vscodeApi.postMessage({ action: WebviewActionEnum.ConnectToRemoteSession, payload });
     setLoading(true);
+  };
+
+  const newTerminal = () => {
+    vscodeApi.postMessage({ action: WebviewActionEnum.ActivateTerminal, payload: { shell } });
   };
 
   return (
@@ -194,8 +208,13 @@ const RemoteSession = ({ repoData, sessionData }: Props) => {
           </div>
           <Title level={3}>Terminal</Title>
           <div className={classNames(styles.row, styles.terminal)}>
-            <input type="text" placeholder="Shell file" value="zsh"></input>
-            <Button disabled={loading} onClick={() => {}}>
+            <input
+              type="text"
+              placeholder="Shell file"
+              value={shell}
+              onChange={({ target: { value } }) => setShell(value)}
+            ></input>
+            <Button disabled={loading} onClick={newTerminal}>
               New Terminal
             </Button>
           </div>
