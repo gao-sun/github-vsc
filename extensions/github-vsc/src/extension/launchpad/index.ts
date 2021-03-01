@@ -1,17 +1,23 @@
 import { RepoData } from '@src/core/types/foundation';
-import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
+import WebviewAction, {
+  ActivateTerminalPayload,
+  WebviewActionEnum,
+} from '@src/core/types/webview-action';
 import { Disposable, ExtensionContext, window as vsCodeWindow } from 'vscode';
 import { ControlPanelView } from '../control-panel-view';
 import { GitHubFS } from '../github-fs';
+import { RemoteSession } from '../remote-session';
 import {
   commitChanges,
+  deliverRemoteSessionData,
   postUpdateData,
   updateRepoData,
   validatePAT,
 } from '../utils/action-handler';
 import { getVSCodeData } from '../utils/global-state';
 
-export class LaunchPad implements Disposable {
+export class Launchpad implements Disposable {
+  private readonly remoteSession: RemoteSession;
   private readonly extensionContext: ExtensionContext;
   private readonly controlPanelView: ControlPanelView;
   private readonly gitHubFS: GitHubFS;
@@ -23,6 +29,9 @@ export class LaunchPad implements Disposable {
     // init props
     this.gitHubFS = new GitHubFS(extensionContext, this.updateRepoData);
     this.controlPanelView = new ControlPanelView(extensionContext, this.actionHandler);
+    this.remoteSession = new RemoteSession(extensionContext, (payload) =>
+      deliverRemoteSessionData(this.controlPanelView.getWebview(), payload),
+    );
 
     // disposable
     this.disposable = Disposable.from(
@@ -39,6 +48,31 @@ export class LaunchPad implements Disposable {
   private actionHandler = async ({ action, payload }: WebviewAction) => {
     const webview = this.controlPanelView.getWebview();
     const context = this.extensionContext;
+
+    if (action === WebviewActionEnum.ConnectToRemoteSession) {
+      if (await this.remoteSession.connectTo(payload)) {
+        postUpdateData(webview, getVSCodeData(context));
+      }
+    }
+
+    if (action === WebviewActionEnum.RequestRemoteRessionData) {
+      this.remoteSession.deliverStatusData();
+    }
+
+    if (action === WebviewActionEnum.ActivateTerminal) {
+      const { shell } = payload as ActivateTerminalPayload;
+      this.remoteSession.activateTerminal(shell);
+    }
+
+    if (action === WebviewActionEnum.DisconnectRemoteRession) {
+      this.remoteSession.disconnect();
+    }
+
+    if (action === WebviewActionEnum.TerminateRemoteRession) {
+      if (await this.remoteSession.terminate()) {
+        postUpdateData(webview, getVSCodeData(context));
+      }
+    }
 
     if (action === WebviewActionEnum.ValidatePAT) {
       validatePAT(webview, context, payload, () => this.gitHubFS.onDataUpdated());
