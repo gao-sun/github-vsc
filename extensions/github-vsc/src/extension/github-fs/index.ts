@@ -37,7 +37,6 @@ import {
   lookupAsFile,
   lookupIfFileDirtyWithoutFetching,
 } from './lookup';
-import { ControlPanelView } from '../control-panel-view';
 import {
   convertGitHubSearchResponseToSearchResult,
   getGitHubRefDescription,
@@ -50,12 +49,6 @@ import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
 import { GitHubRef } from '@core/types/foundation';
-import {
-  postUpdateData,
-  commitChanges,
-  updateRepoData,
-  validatePAT,
-} from '../utils/action-handler';
 import { getVSCodeData } from '../utils/global-state';
 import {
   showGlobalSearchLimitationInfo,
@@ -64,7 +57,6 @@ import {
   showNoDefaultBranchWarning,
   openControlPanel,
 } from './message';
-import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import { getShortenRef } from '../../core/utils/git-ref';
 import { RepoDataUpdateHandler } from '../launchpad/types';
 
