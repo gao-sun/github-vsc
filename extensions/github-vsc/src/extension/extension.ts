@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { GitHubFS } from './github-fs';
 import { updateAPIAuth } from './apis';
 import init from './init';
 import { getVSCodeData } from './utils/global-state';
 import { showWelcomeInfo } from './github-fs/message';
+import { LaunchPad } from './launchpad';
 
 init();
 
@@ -14,7 +14,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateAPIAuth(vsCodeData?.userContext?.pat);
   showWelcomeInfo(context);
 
-  context.subscriptions.push(new GitHubFS(context));
+  context.subscriptions.push(new LaunchPad(context));
 
   console.log('GitHub VSC activated');
 }

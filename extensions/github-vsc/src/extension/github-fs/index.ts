@@ -66,6 +66,7 @@ import {
 } from './message';
 import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import { getShortenRef } from '../../core/utils/git-ref';
+import { RepoDataUpdateHandler } from '../launchpad/types';
 
 export class GitHubFS
   implements
@@ -78,12 +79,24 @@ export class GitHubFS
   static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
   // MARK: fs properties
-  private ghfsSCM: GHFSSourceControl;
-  private root = new Directory(GitHubFS.rootUri, '', '', GitFileMode.Tree);
-  private githubRef?: GitHubRef;
-  private controlPanelView: ControlPanelView;
+  private _ghfsSCM: GHFSSourceControl;
+  private _root = new Directory(GitHubFS.rootUri, '', '', GitFileMode.Tree);
+  private _githubRef?: GitHubRef;
   private defaultBranch?: string;
+  private onRepoDataUpdate: RepoDataUpdateHandler;
   readonly extensionContext: ExtensionContext;
+
+  get ghfsSCM(): GHFSSourceControl {
+    return this._ghfsSCM;
+  }
+
+  get root(): Directory {
+    return this._root;
+  }
+
+  get githubRef(): Optional<GitHubRef> {
+    return this._githubRef;
+  }
 
   // MARK: fs helpers
   private getLocation(uri: Uri): Optional<GitHubLocation> {
@@ -106,7 +119,7 @@ export class GitHubFS
   }
 
   private reopen(name: string, ref?: GitHubRef) {
-    this.githubRef = ref;
+    this._githubRef = ref;
     reopenFolder(name);
     // update decorations
     this.ghfsSCM
@@ -121,7 +134,7 @@ export class GitHubFS
     const vsCodeData = await getVSCodeData(this.extensionContext);
 
     if (!this.githubRef) {
-      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), undefined);
+      this.onRepoDataUpdate(undefined);
       return;
     }
 
@@ -132,14 +145,14 @@ export class GitHubFS
         ? (await getPermission(owner, repo, vsCodeData?.userContext)).data.permission
         : vsCodeData?.repoData?.permission;
 
-      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
+      this.onRepoDataUpdate({
         ref: this.githubRef,
         permission,
         commitMessage: this.ghfsSCM.scm.inputBox.value,
         changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     } catch {
-      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
+      this.onRepoDataUpdate({
         ref: this.githubRef,
         commitMessage: this.ghfsSCM.scm.inputBox.value,
         changedFiles: this.ghfsSCM.getChangedFiles(),
@@ -172,7 +185,7 @@ export class GitHubFS
     }
 
     const description = getGitHubRefDescription(location);
-    this.root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
+    this._root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
 
     if (!location) {
       this.reopen(description, undefined);
@@ -209,44 +222,24 @@ export class GitHubFS
   }
 
   // MARK: webview action handler
-  private onDataUpdated() {
+  // TO-DO: refactor
+  onDataUpdated(): void {
     this.switchTo();
-  }
-
-  private async actionHandler({ action, payload }: WebviewAction) {
-    const webview = this.controlPanelView.getWebview();
-    const context = this.extensionContext;
-
-    if (action === WebviewActionEnum.ValidatePAT) {
-      validatePAT(webview, context, payload, () => this.onDataUpdated());
-    }
-
-    if (action === WebviewActionEnum.CommitChanges) {
-      commitChanges(webview, this.githubRef, payload, this.ghfsSCM.getChangedFiles(), this.root);
-    }
-
-    if (action === WebviewActionEnum.RequestData) {
-      postUpdateData(webview, getVSCodeData(context));
-    }
   }
 
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(extensionContext: ExtensionContext) {
+  constructor(extensionContext: ExtensionContext, onRepoDataUpdate: RepoDataUpdateHandler) {
     this.extensionContext = extensionContext;
-    this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
-    // TO-DO: de-couple this from FS
-    this.controlPanelView = new ControlPanelView(extensionContext, (action) =>
-      this.actionHandler(action),
-    );
+    this.onRepoDataUpdate = onRepoDataUpdate;
+    this._ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
       workspace.registerTextSearchProvider(GitHubFS.scheme, this),
-      vsCodeWindow.registerWebviewViewProvider('github-vsc-control-panel', this.controlPanelView),
       // change uri when document opening/closing
       vsCodeWindow.onDidChangeActiveTextEditor(() => this.updateBroswerUrl()),
       vsCodeWindow.registerFileDecorationProvider(this),
