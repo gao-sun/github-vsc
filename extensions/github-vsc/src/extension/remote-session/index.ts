@@ -17,7 +17,7 @@ import {
 } from '@github-vsc-runner/core';
 import { nanoid } from 'nanoid';
 
-import { GitHubRef, TerminalData } from '@core/types/foundation';
+import { TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
   ActivateTerminalPayload,
