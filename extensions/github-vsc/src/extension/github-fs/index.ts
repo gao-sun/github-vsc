@@ -112,7 +112,7 @@ export class GitHubFS
 
   private reopen(name: string, ref?: GitHubRef) {
     this._githubRef = ref;
-    reopenFolder(name);
+    reopenFolder(name, GitHubFS.rootUri);
     // update decorations
     this.ghfsSCM
       .getChangedFiles()

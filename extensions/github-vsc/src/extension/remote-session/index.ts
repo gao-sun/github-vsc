@@ -33,6 +33,8 @@ import { getSessionData, setSessionData } from '../utils/global-state';
 import dayjs, { Dayjs } from 'dayjs';
 import { getRefKey } from '@src/core/utils/git-ref';
 import { launchRunnerClient, MessageDelivery } from './launch-runner';
+import { RemoteSessionFS } from './fs';
+import { reopenFolder } from '../utils/workspace';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -53,6 +55,7 @@ export class RemoteSession implements Disposable {
     runnerClientStatus: RunnerClientStatus.Offline,
   };
   socket?: Socket;
+  fileSystem?: RemoteSessionFS;
 
   setPartialRunnerStatusData(partial: Partial<RunnerStatusData>): void {
     this._runnerStatusData = { ...this._runnerStatusData, ...partial };
@@ -256,6 +259,7 @@ export class RemoteSession implements Disposable {
       });
       this.socket = socket;
       this.terminals = [];
+      this.fileSystem = undefined;
 
       socket.on('connect', () => {
         console.log('runner connected');
@@ -271,6 +275,8 @@ export class RemoteSession implements Disposable {
         console.log('runner disconnected');
 
         this.terminals = [];
+        this.socket = undefined;
+        this.fileSystem = undefined;
         if ([RunnerStatus.Connected, RunnerStatus.SessionStarted].includes(this.runnerStatus)) {
           this.resetRunnerStatus(RunnerStatus.Disconnected);
         }
@@ -302,7 +308,7 @@ export class RemoteSession implements Disposable {
 
         clearTimeoutHandleIfNeeded();
 
-        this.registerSocketEventListeners();
+        this.registerSocketEventListeners(socket);
         console.log('session started', sessionId);
 
         this.runnerStatus = RunnerStatus.SessionStarted;
@@ -349,8 +355,8 @@ export class RemoteSession implements Disposable {
     return false;
   }
 
-  private registerSocketEventListeners() {
-    this.socket?.on(RunnerClientEvent.CurrentTerminals, (terminals: TerminalOptions[]) => {
+  private registerSocketEventListeners(socket: Socket) {
+    socket.on(RunnerClientEvent.CurrentTerminals, (terminals: TerminalOptions[]) => {
       console.log('received current terminals', terminals);
       this.terminals = terminals.map((terminal) => ({
         ...terminal,
@@ -358,7 +364,7 @@ export class RemoteSession implements Disposable {
         restoredFromRemote: true,
       }));
     });
-    this.socket?.on(RunnerClientEvent.TerminalClosed, (terminalId: string) => {
+    socket.on(RunnerClientEvent.TerminalClosed, (terminalId: string) => {
       if (
         (this.terminals.find(({ id }) => id === terminalId)?.activateTime.diff(dayjs(), 'second') ??
           0) >= -terminalLiveThreshold
@@ -370,14 +376,18 @@ export class RemoteSession implements Disposable {
 
       this.terminals = this.terminals.filter(({ id }) => id !== terminalId);
     });
-    this.socket?.on(RunnerClientEvent.Stdout, (terminalId: string, data: unknown) => {
+    socket.on(RunnerClientEvent.Stdout, (terminalId: string, data: unknown) => {
       console.log('stdout', terminalId, data);
       this.postTerminalData(terminalId, data);
     });
-    this.socket?.on(
+    socket.on(
       RunnerServerEvent.RunnerStatus,
       (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
         this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
+        if (runnerClientStatus === RunnerClientStatus.Online && !this.fileSystem) {
+          this.fileSystem = new RemoteSessionFS(socket);
+          reopenFolder('Remote Session', RemoteSessionFS.rootUri);
+        }
       },
     );
   }
