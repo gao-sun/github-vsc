@@ -45,6 +45,7 @@ const terminalLiveThreshold = 3;
 
 export class RemoteSession implements Disposable {
   // MARK: disposable
+  private readonly _disposable: Disposable;
   private readonly _extensionContext: ExtensionContext;
   private _panel?: WebviewPanel;
   private _data?: SessionData;
@@ -55,7 +56,7 @@ export class RemoteSession implements Disposable {
     runnerClientStatus: RunnerClientStatus.Offline,
   };
   socket?: Socket;
-  fileSystem?: RemoteSessionFS;
+  fileSystem = new RemoteSessionFS();
 
   setPartialRunnerStatusData(partial: Partial<RunnerStatusData>): void {
     this._runnerStatusData = { ...this._runnerStatusData, ...partial };
@@ -123,9 +124,12 @@ export class RemoteSession implements Disposable {
     this._extensionContext = extensionContext;
     this._onUpdate = onUpdate;
     this._terminals = [];
+    this._disposable = Disposable.from(this.fileSystem);
   }
 
-  dispose(): void {}
+  dispose(): void {
+    this._disposable.dispose();
+  }
 
   // MARK: webview message
   deliverStatusData(): void {
@@ -259,7 +263,6 @@ export class RemoteSession implements Disposable {
       });
       this.socket = socket;
       this.terminals = [];
-      this.fileSystem = undefined;
 
       socket.on('connect', () => {
         console.log('runner connected');
@@ -276,7 +279,6 @@ export class RemoteSession implements Disposable {
 
         this.terminals = [];
         this.socket = undefined;
-        this.fileSystem = undefined;
         if ([RunnerStatus.Connected, RunnerStatus.SessionStarted].includes(this.runnerStatus)) {
           this.resetRunnerStatus(RunnerStatus.Disconnected);
         }
@@ -384,8 +386,8 @@ export class RemoteSession implements Disposable {
       RunnerServerEvent.RunnerStatus,
       (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
         this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
-        if (runnerClientStatus === RunnerClientStatus.Online && !this.fileSystem) {
-          this.fileSystem = new RemoteSessionFS(socket);
+        if (runnerClientStatus === RunnerClientStatus.Online) {
+          this.fileSystem.registerFSEventHandlers(socket);
           reopenFolder('Remote Session', RemoteSessionFS.rootUri);
         }
       },
