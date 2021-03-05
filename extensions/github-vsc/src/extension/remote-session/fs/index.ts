@@ -1,6 +1,7 @@
 import {
   FSDeleteFilePayload,
   FSEventType,
+  FSFileSearchPayload,
   FSRenameOrCopyPayload,
   FSWriteFilePayload,
   RunnerClientEvent,
@@ -10,15 +11,24 @@ import { Buffer } from 'buffer/';
 import { nanoid } from 'nanoid';
 import { Socket } from 'socket.io-client';
 import {
+  CancellationToken,
   Disposable,
   EventEmitter,
   FileChangeEvent,
+  FileSearchOptions,
+  FileSearchProvider,
+  FileSearchQuery,
   FileStat,
   FileSystemError,
   FileSystemProvider,
   FileType,
+  Progress,
+  TextSearchComplete,
+  TextSearchOptions,
+  TextSearchProvider,
+  TextSearchQuery,
+  TextSearchResult,
   Uri,
-  window as vsCodeWindow,
   workspace,
 } from 'vscode';
 
@@ -26,12 +36,14 @@ type ResolveFn = (value: any) => void;
 type RejectFn = (reason: any) => void;
 type FSEventObject = {
   resolve: ResolveFn;
+  afterResolve?: ResolveFn;
   reject: RejectFn;
   uri: Uri;
   timeoutHandle: ReturnType<typeof setTimeout>;
 };
 
-export class RemoteSessionFS implements Disposable, FileSystemProvider {
+export class RemoteSessionFS
+  implements Disposable, FileSystemProvider, FileSearchProvider, TextSearchProvider {
   static scheme = 'rs-fs';
   static rootUri = Uri.parse(`${RemoteSessionFS.scheme}:/`);
 
@@ -48,11 +60,45 @@ export class RemoteSessionFS implements Disposable, FileSystemProvider {
         isCaseSensitive: true,
         isReadonly: false,
       }),
+      workspace.registerFileSearchProvider(RemoteSessionFS.scheme, this),
+      workspace.registerTextSearchProvider(RemoteSessionFS.scheme, this),
     );
   }
 
   dispose(): void {
     this.disposable.dispose();
+  }
+
+  // MARK: FileSearchProvider implmentation
+  async provideFileSearchResults(
+    { pattern }: FileSearchQuery,
+    options: FileSearchOptions,
+    // TO-DO: cancel request if needed
+    token: CancellationToken,
+  ): Promise<Uri[]> {
+    console.log('file search', pattern, options);
+    const payload: FSFileSearchPayload = {
+      pattern,
+      options: { ...options, folder: options.folder.path },
+    };
+    const paths = await this.makePromise<string[]>(
+      FSEventType.FileSearch,
+      RemoteSessionFS.rootUri,
+      payload,
+    );
+    return paths.map((path) => Uri.joinPath(RemoteSessionFS.rootUri, path));
+  }
+
+  // MARK: TextSearchProvider implmentation
+  async provideTextSearchResults(
+    query: TextSearchQuery,
+    options: TextSearchOptions,
+    progress: Progress<TextSearchResult>,
+    // TO-DO: cancel if needed
+    token: CancellationToken,
+  ): Promise<TextSearchComplete> {
+    console.log('text search', query, options);
+    return { limitHit: false };
   }
 
   // MARK: FileSystemProvider implmentations
@@ -137,6 +183,7 @@ export class RemoteSessionFS implements Disposable, FileSystemProvider {
     uri: Uri,
     payload: unknown,
     timeout = 5,
+    afterResolve?: (value: Response) => void,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       const uuid = nanoid();
@@ -147,7 +194,13 @@ export class RemoteSessionFS implements Disposable, FileSystemProvider {
           ),
         timeout * 1000,
       );
-      this._eventDict[uuid] = { resolve, reject, uri, timeoutHandle };
+      this._eventDict[uuid] = {
+        resolve,
+        afterResolve,
+        reject,
+        uri,
+        timeoutHandle,
+      };
       this._socket?.emit(VscClientEvent.FSEvent, uuid, type, payload);
     });
   }
@@ -184,6 +237,7 @@ export class RemoteSessionFS implements Disposable, FileSystemProvider {
       clearTimeout(event.timeoutHandle);
       delete this._eventDict[uuid];
       event.resolve(data);
+      event.afterResolve?.(data);
     });
     forSocket.on(RunnerClientEvent.FSEventError, (uuid: string, error: NodeJS.ErrnoException) => {
       const event = this._eventDict[uuid];

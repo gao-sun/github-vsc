@@ -908,10 +908,10 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
-"@github-vsc-runner/core@^1.0.0-alpha.8":
-  version "1.0.0-alpha.8"
-  resolved "https://registry.yarnpkg.com/@github-vsc-runner/core/-/core-1.0.0-alpha.8.tgz#dfa4d5c81eab84b730e5b80a437f92a6e033d79f"
-  integrity sha512-wp6RgyB5ekcbjkcu/ls1j6xg/DX+avFydAZ9t6f704B5H2TtqbUxWY634nZnvW+zcSvMCO3Bo6g8yXtle0SBcg==
+"@github-vsc-runner/core@^1.0.0-alpha.10":
+  version "1.0.0-alpha.10"
+  resolved "https://registry.yarnpkg.com/@github-vsc-runner/core/-/core-1.0.0-alpha.10.tgz#56a887e498a69f5963e99a7d52203583c7f116e2"
+  integrity sha512-mEZy6EQyEzJEi9rEyMIsWexVsi7KPlcDG622vddqaJe0VTAiOCeor/PJjMsEoRVDz9UywJ2CGTSWRVDEtRBo/A==
 
 "@nodelib/fs.scandir@2.1.4":
   version "2.1.4"
