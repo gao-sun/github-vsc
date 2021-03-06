@@ -10,6 +10,7 @@ import 'xterm/css/xterm.css';
 import TerminalIcon from '../icons/Terminal';
 import styles from './index.module.scss';
 import TerminalView from './TerminalView';
+import theme from './theme';
 
 type TerminalInstance = {
   terminal: Terminal;
@@ -37,11 +38,7 @@ const App = () => {
         return found;
       }
       const terminal = new Terminal({
-        /**
-         * VSCode doesn't expose the raw string for specific theme color.
-         * this is awkward. have to hard-code.
-         */
-        theme: { background: '#282c34' },
+        theme,
         fontSize: 12,
         fontFamily: '"Fira Code", "Source Code Pro", courier-new, courier, monospace',
       });
