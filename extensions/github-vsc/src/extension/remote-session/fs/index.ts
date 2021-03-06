@@ -3,6 +3,8 @@ import {
   FSEventType,
   FSFileSearchPayload,
   FSRenameOrCopyPayload,
+  FSTextSearchMatch,
+  FSTextSearchPayload,
   FSWriteFilePayload,
   RunnerClientEvent,
   VscClientEvent,
@@ -15,6 +17,7 @@ import {
   Disposable,
   EventEmitter,
   FileChangeEvent,
+  FileChangeType,
   FileSearchOptions,
   FileSearchProvider,
   FileSearchQuery,
@@ -23,6 +26,7 @@ import {
   FileSystemProvider,
   FileType,
   Progress,
+  Range,
   TextSearchComplete,
   TextSearchOptions,
   TextSearchProvider,
@@ -40,6 +44,7 @@ type FSEventObject = {
   reject: RejectFn;
   uri: Uri;
   timeoutHandle: ReturnType<typeof setTimeout>;
+  progress?: Progress<TextSearchResult>;
 };
 
 export class RemoteSessionFS
@@ -98,7 +103,18 @@ export class RemoteSessionFS
     token: CancellationToken,
   ): Promise<TextSearchComplete> {
     console.log('text search', query, options);
-    return { limitHit: false };
+    const payload: FSTextSearchPayload = {
+      query,
+      options: { ...options, folder: options.folder.toString() },
+    };
+    return this.makePromise(
+      FSEventType.TextSearch,
+      options.folder,
+      payload,
+      60,
+      undefined,
+      progress,
+    );
   }
 
   // MARK: FileSystemProvider implmentations
@@ -145,7 +161,9 @@ export class RemoteSessionFS
       base64Content: Buffer.from(content).toString('base64'),
       options,
     };
-    return this.makePromise(FSEventType.WriteFile, uri, payload, 10);
+    return this.makePromise(FSEventType.WriteFile, uri, payload, 10, () =>
+      this._fireSoon({ type: FileChangeType.Changed, uri }),
+    );
   }
 
   delete(uri: Uri, options: { recursive: boolean }): Promise<void> {
@@ -184,6 +202,7 @@ export class RemoteSessionFS
     payload: unknown,
     timeout = 5,
     afterResolve?: (value: Response) => void,
+    progress?: Progress<TextSearchResult>,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       const uuid = nanoid();
@@ -200,6 +219,7 @@ export class RemoteSessionFS
         reject,
         uri,
         timeoutHandle,
+        progress,
       };
       this._socket?.emit(VscClientEvent.FSEvent, uuid, type, payload);
     });
@@ -234,11 +254,32 @@ export class RemoteSessionFS
         return;
       }
 
+      console.log('received fs event for', uuid);
       clearTimeout(event.timeoutHandle);
       delete this._eventDict[uuid];
       event.resolve(data);
       event.afterResolve?.(data);
     });
+    forSocket.on(
+      RunnerClientEvent.FSTextSearchMatch,
+      (uuid: string, { ranges, path, preview }: FSTextSearchMatch) => {
+        console.log('recevied text match', uuid, path);
+        this._eventDict[uuid]?.progress?.report({
+          uri: Uri.parse(path),
+          ranges: ranges.map(
+            ({ startLine, startPosition, endLine, endPosition }) =>
+              new Range(startLine, startPosition, endLine, endPosition),
+          ),
+          preview: {
+            text: preview.text,
+            matches: preview.matches.map(
+              ({ startLine, startPosition, endLine, endPosition }) =>
+                new Range(startLine, startPosition, endLine, endPosition),
+            ),
+          },
+        });
+      },
+    );
     forSocket.on(RunnerClientEvent.FSEventError, (uuid: string, error: NodeJS.ErrnoException) => {
       const event = this._eventDict[uuid];
       if (!event) {
