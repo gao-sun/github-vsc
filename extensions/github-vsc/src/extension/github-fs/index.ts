@@ -152,7 +152,7 @@ export class GitHubFS
     }
   }
 
-  private async switchTo(location?: GitHubLocation): Promise<void> {
+  async switchTo(location?: GitHubLocation): Promise<void> {
     // get from browser URL
     if (!location) {
       const [urlLocation, defaultBranch] = await decodePathAsGitHubLocation();
@@ -241,8 +241,6 @@ export class GitHubFS
       }),
       this.ghfsSCM,
     );
-
-    this.switchTo();
   }
 
   dispose(): void {

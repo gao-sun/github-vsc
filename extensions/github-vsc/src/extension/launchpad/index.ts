@@ -6,6 +6,7 @@ import WebviewAction, {
 import { Disposable, ExtensionContext, window as vsCodeWindow } from 'vscode';
 import { ControlPanelView } from '../control-panel-view';
 import { GitHubFS } from '../github-fs';
+import { openControlPanel } from '../github-fs/message';
 import { RemoteSession } from '../remote-session';
 import {
   commitChanges,
@@ -15,7 +16,9 @@ import {
   updateRepoData,
   validatePAT,
 } from '../utils/action-handler';
-import { getVSCodeData } from '../utils/global-state';
+import { getSessionData, getVSCodeData } from '../utils/global-state';
+import { decodePathAsGitHubLocation } from '../utils/uri-decode';
+import { showSessionRestorePrompt } from './message';
 
 export class Launchpad implements Disposable {
   private readonly remoteSession: RemoteSession;
@@ -34,6 +37,7 @@ export class Launchpad implements Disposable {
       extensionContext,
       (payload) => deliverRemoteSessionData(this.controlPanelView.getWebview(), payload),
       (port) => setPortForwarding(this.controlPanelView.getWebview(), port),
+      () => this.gitHubFS.switchTo(),
     );
 
     // disposable
@@ -41,10 +45,34 @@ export class Launchpad implements Disposable {
       this.gitHubFS,
       vsCodeWindow.registerWebviewViewProvider('github-vsc-control-panel', this.controlPanelView),
     );
+
+    this.init();
   }
 
   dispose(): void {
     this.disposable.dispose();
+  }
+
+  // MARK: init
+  private async init() {
+    const [urlLocation] = await decodePathAsGitHubLocation();
+
+    if (!urlLocation) {
+      this.gitHubFS.switchTo();
+      return;
+    }
+
+    const existingSession = getSessionData(this.extensionContext, urlLocation);
+
+    if (
+      !existingSession ||
+      (await showSessionRestorePrompt(urlLocation, existingSession, () => {
+        openControlPanel();
+        this.remoteSession.connectTo(existingSession);
+      }))
+    ) {
+      this.gitHubFS.switchTo(urlLocation);
+    }
   }
 
   // MARK: webview action handler

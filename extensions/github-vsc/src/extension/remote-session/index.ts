@@ -52,6 +52,7 @@ export class RemoteSession implements Disposable {
   private _terminals: TerminalInstance[];
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
   private _onPortForwardingUpdate: (port?: number) => void;
+  private _onDisconnect: () => void;
   private _runnerStatusData: RunnerStatusData = {
     runnerStatus: RunnerStatus.Initial,
     runnerClientStatus: RunnerClientStatus.Offline,
@@ -122,10 +123,12 @@ export class RemoteSession implements Disposable {
     extensionContext: ExtensionContext,
     onUpdate: (payload: RemoteSessionDataPayload) => void,
     onPortForwardingUpdate: (port?: number) => void,
+    onDisconnect: () => void,
   ) {
     this._extensionContext = extensionContext;
     this._onUpdate = onUpdate;
     this._onPortForwardingUpdate = onPortForwardingUpdate;
+    this._onDisconnect = onDisconnect;
     this._terminals = [];
     this._disposable = Disposable.from(this.fileSystem);
   }
@@ -303,6 +306,7 @@ export class RemoteSession implements Disposable {
         }
 
         clearTimeoutHandleIfNeeded();
+        this._onDisconnect();
 
         // TO-DO: remove this line to re-connect runner automatically
         socket.close();
