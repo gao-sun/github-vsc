@@ -213,11 +213,13 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
                   setNewSessionOS(value as RunnerClientOS);
                 }}
               >
-                {Object.entries(RunnerClientOS).map(([key, os]) => (
-                  <option key={key} value={os}>
-                    {os}
-                  </option>
-                ))}
+                {Object.entries(RunnerClientOS)
+                  .filter(([, os]) => !os.startsWith('windows'))
+                  .map(([key, os]) => (
+                    <option key={key} value={os}>
+                      {os}
+                    </option>
+                  ))}
               </select>
             </>
           )}
