@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
 
 import Button from '@/components/Button';
 import Description from '@/components/Description';
@@ -27,6 +28,8 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const [workflowRef, setWorkflowRef] = useState<GitHubRef>();
   const [sessionId, setSessionId] = useState('');
   const [shell, setShell] = useState('');
+  const [portForwarding, setPortForwarding] = useState('8080');
+  const [portForwardingEnabled, setPortForwardingEnabled] = useState(false);
   const [serverAddress, setServerAddress] = useState(availableRunners[0].address);
   const [newSessionOS, setNewSessionOS] = useState(RunnerClientOS.Ubuntu_20_04);
   const [sessionMethod, setSessionMethod] = useState(SessionMethod.StartNew);
@@ -35,6 +38,14 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
     runnerClientStatus: RunnerClientStatus.Offline,
   });
   const { runnerStatus, runnerClientStatus, runnerClientOS } = runnerStatusData;
+  const emitPortForwarding = useDebouncedCallback(() => {
+    const payload = conditional(portForwardingEnabled && Number(portForwarding));
+    console.log('post port forwarding', payload);
+    vscodeApi.postMessage({
+      action: WebviewActionEnum.SetPortForwarding,
+      payload,
+    });
+  }, 300);
 
   useEffect(() => {
     if (sessionData?.defaultShell || runnerClientOS) {
@@ -45,7 +56,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
 
   useEffect(() => {
     vscodeApi.postMessage({
-      action: WebviewActionEnum.RequestRemoteRessionData,
+      action: WebviewActionEnum.RequestRemoteSessionData,
     });
   }, []);
 
@@ -59,6 +70,12 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       setSessionMethod(SessionMethod.StartNew);
     }
   }, [sessionData]);
+
+  useEffect(() => emitPortForwarding.callback(), [
+    emitPortForwarding,
+    portForwarding,
+    portForwardingEnabled,
+  ]);
 
   useListenMessage(({ action, payload }) => {
     if (action === WebviewActionEnum.RemoteSessionData) {
@@ -85,6 +102,14 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
         ![RunnerStatus.Connected, RunnerStatus.Connecting].includes(runnerStatusData.runnerStatus)
       ) {
         setLoading(false);
+      }
+    }
+
+    if (action === WebviewActionEnum.SetPortForwarding) {
+      const port = Number(payload);
+      setPortForwardingEnabled(!!port);
+      if (port) {
+        setPortForwarding(payload);
       }
     }
   });
@@ -120,6 +145,8 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
     workflowRef &&
     runnerStatus === RunnerStatus.SessionStarted &&
     runnerClientStatus === RunnerClientStatus.Offline;
+  const isPortForwardingValid = portForwardingEnabled && !!Number(portForwarding);
+  const portForwardingLink = `https://${sessionId}.${new URL(serverAddress).host}`;
 
   if (!userContext) {
     return (
@@ -252,6 +279,35 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
           </div>
           {runnerClientStatus === RunnerClientStatus.Online && (
             <>
+              <Title level={3}>Port Forwarding</Title>
+              <div className={classNames(styles.row, styles.portForwarding)}>
+                <input
+                  type="text"
+                  placeholder="Port number"
+                  disabled={!portForwardingEnabled}
+                  value={portForwarding}
+                  onChange={({ target: { value } }) => setPortForwarding(value)}
+                />
+                <input
+                  type="checkbox"
+                  name="session-port-forwarding"
+                  id="session-port-forwarding"
+                  checked={portForwardingEnabled}
+                  onChange={({ target: { checked } }) => setPortForwardingEnabled(checked)}
+                />
+                <label htmlFor="session-port-forwarding">Enable</label>
+              </div>
+              {!isPortForwardingValid && (
+                <Description>
+                  Enable to forward http requests from public internet to the runner client port.
+                </Description>
+              )}
+              {isPortForwardingValid && (
+                <Description>
+                  Public http requests to <a href={portForwardingLink}>this link</a> will now
+                  forward to port {portForwarding} in your runner client.
+                </Description>
+              )}
               <Title level={3}>Terminal</Title>
               <div className={classNames(styles.row, styles.terminal)}>
                 <input

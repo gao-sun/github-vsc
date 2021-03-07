@@ -51,6 +51,7 @@ export class RemoteSession implements Disposable {
   private _data?: SessionData;
   private _terminals: TerminalInstance[];
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
+  private _onPortForwardingUpdate: (port?: number) => void;
   private _runnerStatusData: RunnerStatusData = {
     runnerStatus: RunnerStatus.Disconnected,
     runnerClientStatus: RunnerClientStatus.Offline,
@@ -120,9 +121,11 @@ export class RemoteSession implements Disposable {
   constructor(
     extensionContext: ExtensionContext,
     onUpdate: (payload: RemoteSessionDataPayload) => void,
+    onPortForwardingUpdate: (port?: number) => void,
   ) {
     this._extensionContext = extensionContext;
     this._onUpdate = onUpdate;
+    this._onPortForwardingUpdate = onPortForwardingUpdate;
     this._terminals = [];
     this._disposable = Disposable.from(this.fileSystem);
   }
@@ -366,6 +369,10 @@ export class RemoteSession implements Disposable {
         restoredFromRemote: true,
       }));
     });
+    socket.on(RunnerClientEvent.CurrentPortForwarding, (port?: number) => {
+      console.log('received port forwarding', port);
+      this._onPortForwardingUpdate(port);
+    });
     socket.on(RunnerClientEvent.TerminalClosed, (terminalId: string) => {
       if (
         (this.terminals.find(({ id }) => id === terminalId)?.activateTime.diff(dayjs(), 'second') ??
@@ -419,6 +426,12 @@ export class RemoteSession implements Disposable {
   private retrieveRunnerInfo() {
     this.socket?.emit(VscClientEvent.CheckRunnerStatus);
     this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
+    this.socket?.emit(VscClientEvent.FetchCurrentPortForwarding);
+  }
+
+  // MARK: port forwarding
+  setPortForwarding(port?: number): void {
+    this.socket?.emit(VscClientEvent.SetPortForwarding, port);
   }
 
   // MARK: terminal

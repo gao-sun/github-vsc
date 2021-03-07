@@ -11,6 +11,7 @@ import {
   commitChanges,
   deliverRemoteSessionData,
   postUpdateData,
+  setPortForwarding,
   updateRepoData,
   validatePAT,
 } from '../utils/action-handler';
@@ -29,8 +30,10 @@ export class Launchpad implements Disposable {
     // init props
     this.gitHubFS = new GitHubFS(extensionContext, this.updateRepoData);
     this.controlPanelView = new ControlPanelView(extensionContext, this.actionHandler);
-    this.remoteSession = new RemoteSession(extensionContext, (payload) =>
-      deliverRemoteSessionData(this.controlPanelView.getWebview(), payload),
+    this.remoteSession = new RemoteSession(
+      extensionContext,
+      (payload) => deliverRemoteSessionData(this.controlPanelView.getWebview(), payload),
+      (port) => setPortForwarding(this.controlPanelView.getWebview(), port),
     );
 
     // disposable
@@ -55,13 +58,17 @@ export class Launchpad implements Disposable {
       }
     }
 
-    if (action === WebviewActionEnum.RequestRemoteRessionData) {
+    if (action === WebviewActionEnum.RequestRemoteSessionData) {
       this.remoteSession.deliverStatusData();
     }
 
     if (action === WebviewActionEnum.ActivateTerminal) {
       const { shell } = payload as ActivateTerminalPayload;
       this.remoteSession.activateTerminal(shell);
+    }
+
+    if (action === WebviewActionEnum.SetPortForwarding) {
+      this.remoteSession.setPortForwarding(payload);
     }
 
     if (action === WebviewActionEnum.DisconnectRemoteRession) {

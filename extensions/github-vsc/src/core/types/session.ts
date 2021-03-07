@@ -22,7 +22,7 @@ export type RunnerServer = {
 export const allRunners: readonly RunnerServer[] = Object.freeze([
   {
     name: 'localhost',
-    address: 'wss://localhost:3000',
+    address: 'wss://runner.github-vsc.localhost:3000',
     type: RunnerServerType.Dev,
   },
   {

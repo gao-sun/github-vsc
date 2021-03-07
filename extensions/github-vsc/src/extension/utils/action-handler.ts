@@ -336,3 +336,16 @@ export const deliverRemoteSessionData = async (
     payload,
   });
 };
+
+export const setPortForwarding = async (
+  webview: Optional<Webview>,
+  payload?: number,
+): Promise<boolean> => {
+  if (!webview) {
+    return true;
+  }
+  return postAction(webview, {
+    action: WebviewActionEnum.SetPortForwarding,
+    payload,
+  });
+};

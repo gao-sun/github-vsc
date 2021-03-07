@@ -908,10 +908,10 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
-"@github-vsc-runner/core@^1.0.0-alpha.12":
-  version "1.0.0-alpha.12"
-  resolved "https://registry.yarnpkg.com/@github-vsc-runner/core/-/core-1.0.0-alpha.12.tgz#281b4285035205a1bbe7842151bd448196cf91d6"
-  integrity sha512-QoXKmDqPD9TMAz61tsAQYkuNpKNjEc5YPdwqfqtvlMCO9wGbDylMWN1kI1ACVoSfN9WwyDZqqiahorD2vM4Dlw==
+"@github-vsc-runner/core@^1.0.0-alpha.13":
+  version "1.0.0-alpha.13"
+  resolved "https://registry.yarnpkg.com/@github-vsc-runner/core/-/core-1.0.0-alpha.13.tgz#c636889e9e1f481f9dcb4a273ff326b000f39288"
+  integrity sha512-InCCh3IUuMsG02PLuT8nlbKfyRHvsKGWUVWfc2eVp7Ny4FvR5TqZUUFiD6qnJyvegz+ZKGtFh1ELyMVfHi/z5Q==
 
 "@nodelib/fs.scandir@2.1.4":
   version "2.1.4"
@@ -4286,6 +4286,11 @@ urix@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/urix/-/urix-0.1.0.tgz#da937f7a62e21fec1fd18d49b35c2935067a6c72"
   integrity sha1-2pN/emLiH+wf0Y1Js1wpNQZ6bHI=
+
+use-debounce@^5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/use-debounce/-/use-debounce-5.2.1.tgz#7366543c769f1de3e92104dee64de5c4dfddfd33"
+  integrity sha512-BQG5uEypYHd/ASF6imzYR8tJHh5qGn28oZG/5iVAbljV6MUrfyT4jzxA8co+L+WLCT1U8VBwzzvlb3CHmUDpEA==
 
 util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"

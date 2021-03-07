@@ -12,7 +12,7 @@ export enum WebviewActionEnum {
   CommitChangesResult = 'CommitChangesResult',
   ConnectToRemoteSession = 'ConnectToRemoteSession',
   RemoteSessionData = 'RemoteSessionData',
-  RequestRemoteRessionData = 'RequestRemoteRessionData',
+  RequestRemoteSessionData = 'RequestRemoteSessionData',
   DisconnectRemoteRession = 'DisconnectRemoteRession',
   TerminateRemoteRession = 'TerminateRemoteRession',
   ActivateTerminal = 'ActivateTerminal',
@@ -20,6 +20,7 @@ export enum WebviewActionEnum {
   TerminalStdout = 'TerminalStdout',
   TerminalCmd = 'TerminalCmd',
   TerminalSetDimensions = 'TerminalSetDimensions',
+  SetPortForwarding = 'SetPortForwarding',
 }
 
 export type ProposeChangesPayload = {

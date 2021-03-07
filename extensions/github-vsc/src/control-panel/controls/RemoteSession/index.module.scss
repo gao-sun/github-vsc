@@ -26,6 +26,26 @@
     }
   }
 
+  .portForwarding {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    input[type='text'] {
+      flex-grow: 1;
+      margin-right: 12px;
+    }
+
+    input[type='checkbox'] {
+      margin: 0;
+      margin-right: 4px;
+    }
+
+    label {
+      user-select: none;
+    }
+  }
+
   .row {
     display: flex;
     justify-content: space-between;
