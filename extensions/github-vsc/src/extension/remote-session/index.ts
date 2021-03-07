@@ -53,7 +53,7 @@ export class RemoteSession implements Disposable {
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
   private _onPortForwardingUpdate: (port?: number) => void;
   private _runnerStatusData: RunnerStatusData = {
-    runnerStatus: RunnerStatus.Disconnected,
+    runnerStatus: RunnerStatus.Initial,
     runnerClientStatus: RunnerClientStatus.Offline,
   };
   socket?: Socket;
@@ -109,7 +109,7 @@ export class RemoteSession implements Disposable {
     }
   }
 
-  private resetRunnerStatus(runnerStatus = RunnerStatus.Disconnected) {
+  private resetRunnerStatus(runnerStatus = RunnerStatus.Initial) {
     this.setPartialRunnerStatusData({
       sessionId: undefined,
       runnerStatus,
@@ -152,7 +152,7 @@ export class RemoteSession implements Disposable {
       });
     }
 
-    if ([RunnerStatus.Disconnected, RunnerStatus.Connecting].includes(data.runnerStatus)) {
+    if ([RunnerStatus.Initial, RunnerStatus.Connecting].includes(data.runnerStatus)) {
       onUpdate({ ...data, type: 'message' });
     }
 
@@ -169,6 +169,15 @@ export class RemoteSession implements Disposable {
         ...data,
         type: 'error',
         message: 'Session has been terminated, please create a new one if needed.',
+      });
+    }
+
+    if (data.runnerStatus === RunnerStatus.Disconnected) {
+      onUpdate({
+        ...data,
+        type: 'error',
+        message:
+          'Runner server disconnected, this may infer an upgrade/maintenance. Please try to connect later.',
       });
     }
 
@@ -232,7 +241,7 @@ export class RemoteSession implements Disposable {
         'Continue',
       );
       if (answer !== 'Continue') {
-        this.runnerStatus = RunnerStatus.Disconnected;
+        this.runnerStatus = RunnerStatus.Initial;
         return false;
       }
     }
@@ -244,7 +253,7 @@ export class RemoteSession implements Disposable {
       const socket = io(data.serverAddress);
       const timeoutHandle = setTimeout(() => {
         if (
-          [RunnerStatus.Disconnected, RunnerStatus.Connected, RunnerStatus.Connecting].includes(
+          [RunnerStatus.Initial, RunnerStatus.Connected, RunnerStatus.Connecting].includes(
             this.runnerStatus,
           )
         ) {
@@ -287,6 +296,9 @@ export class RemoteSession implements Disposable {
         }
 
         clearTimeoutHandleIfNeeded();
+
+        // TO-DO: remove this line to re-connect runner automatically
+        socket.close();
       });
 
       socket.on(RunnerServerEvent.SessionTerminated, () => {
@@ -321,6 +333,7 @@ export class RemoteSession implements Disposable {
           sessionId,
           runnerStatus: RunnerStatus.SessionStarted,
         });
+        this._onPortForwardingUpdate();
         setSessionData(this._extensionContext, data.githubRef, { ...data, sessionId });
 
         const isNewSession = !!this.sessionId;
@@ -337,6 +350,7 @@ export class RemoteSession implements Disposable {
   }
 
   disconnect(): void {
+    this.resetRunnerStatus(RunnerStatus.Initial);
     this.socket?.disconnect();
     this.sessionId = undefined;
   }

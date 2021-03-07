@@ -34,7 +34,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const [newSessionOS, setNewSessionOS] = useState(RunnerClientOS.Ubuntu_20_04);
   const [sessionMethod, setSessionMethod] = useState(SessionMethod.StartNew);
   const [runnerStatusData, setRunnerStatusData] = useState<RunnerStatusData>({
-    runnerStatus: RunnerStatus.Disconnected,
+    runnerStatus: RunnerStatus.Initial,
     runnerClientStatus: RunnerClientStatus.Offline,
   });
   const { runnerStatus, runnerClientStatus, runnerClientOS } = runnerStatusData;
