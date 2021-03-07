@@ -226,7 +226,14 @@ export class RemoteSession implements Disposable {
     const deliverMessage: MessageDelivery = (message, type = 'message', workflowRef) => {
       this._onUpdate({ ...this.runnerStatusData, type, message, workflowRef });
     };
-    await launchRunnerClient(deliverMessage, serverAddress, os, sessionId);
+    await launchRunnerClient(
+      this._extensionContext,
+      deliverMessage,
+      serverAddress,
+      os,
+      sessionId,
+      githubRef,
+    );
   }
 
   // MARK: session control

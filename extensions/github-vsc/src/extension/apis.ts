@@ -212,11 +212,38 @@ export const dispatchRunnerWorkflow = (
   serverAddress: string,
   os: RunnerClientOS,
   sessionId: string,
+  repository?: string,
+  repositoryRef?: string,
 ): Promise<RestEndpointMethodTypes['actions']['createWorkflowDispatch']['response']> =>
   octokit.actions.createWorkflowDispatch({
     owner,
     repo,
     workflow_id: 'runner-client.yml',
     ref,
-    inputs: { serverAddress, os, sessionId },
+    // can be optional
+    inputs: { serverAddress, os, sessionId, repository, ref: repositoryRef } as Record<
+      string,
+      string
+    >,
+  });
+
+export const getActionsPublicKey = (
+  owner: string,
+  repo: string,
+): Promise<RestEndpointMethodTypes['actions']['getRepoPublicKey']['response']> =>
+  octokit.actions.getRepoPublicKey({ owner, repo });
+
+export const updateActionsRepoSecret = (
+  owner: string,
+  repo: string,
+  secretName: string,
+  encrypted: string,
+  keyId: string,
+): Promise<RestEndpointMethodTypes['actions']['createOrUpdateRepoSecret']['response']> =>
+  octokit.actions.createOrUpdateRepoSecret({
+    owner,
+    repo,
+    secret_name: secretName,
+    encrypted_value: encrypted,
+    key_id: keyId,
   });
