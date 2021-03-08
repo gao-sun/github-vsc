@@ -53,7 +53,7 @@ const App = () => {
       });
 
       if (restoredFromRemote) {
-        terminal.write('Session restored.\x85');
+        terminal.write('Terminal restored.\x85');
       }
 
       return { id, terminal, fitAddon };

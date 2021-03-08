@@ -2,7 +2,7 @@ import Button from '@/components/Button';
 import Description from '@/components/Description';
 import Tip from '@/components/Tip';
 import Title from '@/components/Title';
-import { CommitMethod, RepoData, UserContext } from '@core/types/foundation';
+import { CommitMethod, RepoData, SessionData, UserContext } from '@core/types/foundation';
 import React, { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 
@@ -10,6 +10,7 @@ import styles from './index.module.scss';
 import { vscodeApi } from '@core/utils/vscode';
 import WebViewAction, {
   ProposeChangesPayload,
+  RemoteSessionDataPayload,
   WebviewActionEnum,
 } from '@src/core/types/webview-action';
 import { conditionalString } from '@src/extension/utils/object';
@@ -17,6 +18,7 @@ import { getFileName } from '@core/utils/path';
 import useListenMessage from '@core/hooks/useListenMessage';
 import RadioGroup from '@/components/RadioGroup';
 import { getNormalRef } from '@src/core/utils/git-ref';
+import { RunnerStatus } from '@src/extension/remote-session/types';
 
 type CommitOption = {
   value: CommitMethod;
@@ -30,6 +32,7 @@ export type Props = {
 };
 
 const SourceControl = ({ repoData, userContext }: Props) => {
+  const [hasActiveSession, setHasActiveSession] = useState(false);
   const [branchName, setBranchName] = useState('');
   const [commitMessage, setCommitMessage] = useState('');
   const [commitMethod, setCommitMethod] = useState<CommitMethod>(CommitMethod.PR);
@@ -82,6 +85,16 @@ const SourceControl = ({ repoData, userContext }: Props) => {
     if (action === WebviewActionEnum.CommitChangesMessage) {
       setMessage(String(payload));
     }
+
+    if (action === WebviewActionEnum.RemoteSessionData) {
+      const { runnerStatus } = payload as RemoteSessionDataPayload;
+      // TO-DO: make this check an util
+      setHasActiveSession(
+        [RunnerStatus.Connecting, RunnerStatus.Connected, RunnerStatus.SessionStarted].includes(
+          runnerStatus,
+        ),
+      );
+    }
   });
 
   const commit = () => {
@@ -124,6 +137,15 @@ const SourceControl = ({ repoData, userContext }: Props) => {
           message: `Fork the repo, create a new branch for this commit and start a pull request.`,
         },
       ];
+
+  if (hasActiveSession) {
+    return (
+      <div className={styles.sc}>
+        <Title>Source Control</Title>
+        <Description>Editor source control is disabled when remote session is active.</Description>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.sc}>

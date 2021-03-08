@@ -18,7 +18,7 @@ import {
 } from '../utils/action-handler';
 import { getSessionData, getVSCodeData } from '../utils/global-state';
 import { decodePathAsGitHubLocation } from '../utils/uri-decode';
-import { showSessionRestorePrompt } from './message';
+import { confirmDiscardEditorChanges, showSessionRestorePrompt } from './message';
 
 export class Launchpad implements Disposable {
   private readonly remoteSession: RemoteSession;
@@ -81,6 +81,14 @@ export class Launchpad implements Disposable {
     const context = this.extensionContext;
 
     if (action === WebviewActionEnum.ConnectToRemoteSession) {
+      if (
+        this.gitHubFS.ghfsSCM.getChangedFiles().length > 0 &&
+        !(await confirmDiscardEditorChanges())
+      ) {
+        this.remoteSession.disconnect();
+        return;
+      }
+
       if (await this.remoteSession.connectTo(payload)) {
         postUpdateData(webview, getVSCodeData(context));
       }

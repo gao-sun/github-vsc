@@ -151,7 +151,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       <div className={styles.remoteSession}>
         <Title>Remote Session</Title>
         <Description>
-          Setup PAT to start remote session.
+          Setup PAT to start a remote session.
           <br />
           <br />
           {patNote}
