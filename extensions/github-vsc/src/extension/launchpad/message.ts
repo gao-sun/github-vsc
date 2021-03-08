@@ -7,12 +7,12 @@ export const showSessionRestorePrompt = async (
   onSessionRestore: () => void,
 ): Promise<boolean> => {
   const choose = await vsCodeWindow.showInformationMessage(
-    `You have a remote session of ${owner}/${repo}:${ref},\nServer=${serverAddress}\nID=${sessionId}\n\nWould you like to restore it now?`,
+    `You have a remote session of ${owner}/${repo}:${ref},\nServer=${serverAddress}\nID=${sessionId}\n\nWould you like to resume it now?`,
     { modal: true },
-    'Restore Session',
+    'Resume Session',
   );
 
-  if (choose === 'Restore Session') {
+  if (choose === 'Resume Session') {
     onSessionRestore();
     return true;
   }

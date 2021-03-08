@@ -21,6 +21,7 @@ import { Props, SessionMethod, sessionOptions } from './foundation';
 import { getRefKey } from '@src/core/utils/git-ref';
 import { availableRunners, RunnerStatusData } from '@src/core/types/session';
 
+// TO-DO: refactor
 const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +59,9 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
     vscodeApi.postMessage({
       action: WebviewActionEnum.RequestRemoteSessionData,
     });
+    vscodeApi.postMessage({
+      action: WebviewActionEnum.RequestPortForwardingData,
+    });
   }, []);
 
   useEffect(() => {
@@ -70,12 +74,6 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       setSessionMethod(SessionMethod.StartNew);
     }
   }, [sessionData]);
-
-  useEffect(() => emitPortForwarding.callback(), [
-    emitPortForwarding,
-    portForwarding,
-    portForwardingEnabled,
-  ]);
 
   useListenMessage(({ action, payload }) => {
     if (action === WebviewActionEnum.RemoteSessionData) {
@@ -288,14 +286,20 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
                   placeholder="Port number"
                   disabled={!portForwardingEnabled}
                   value={portForwarding}
-                  onChange={({ target: { value } }) => setPortForwarding(value)}
+                  onChange={({ target: { value } }) => {
+                    setPortForwarding(value);
+                    emitPortForwarding.callback();
+                  }}
                 />
                 <input
                   type="checkbox"
                   name="session-port-forwarding"
                   id="session-port-forwarding"
                   checked={portForwardingEnabled}
-                  onChange={({ target: { checked } }) => setPortForwardingEnabled(checked)}
+                  onChange={({ target: { checked } }) => {
+                    setPortForwardingEnabled(checked);
+                    emitPortForwarding.callback();
+                  }}
                 />
                 <label htmlFor="session-port-forwarding">Enable</label>
               </div>

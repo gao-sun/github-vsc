@@ -20,6 +20,7 @@ export enum WebviewActionEnum {
   TerminalStdout = 'TerminalStdout',
   TerminalCmd = 'TerminalCmd',
   TerminalSetDimensions = 'TerminalSetDimensions',
+  RequestPortForwardingData = 'RequestPortForwardingData',
   SetPortForwarding = 'SetPortForwarding',
 }
 

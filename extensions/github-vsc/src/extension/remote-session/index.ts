@@ -141,10 +141,6 @@ export class RemoteSession implements Disposable {
   deliverStatusData(): void {
     const { runnerStatusData: data, _onUpdate: onUpdate } = this;
 
-    if (!onUpdate) {
-      return;
-    }
-
     if (data.runnerStatus === RunnerStatus.Connected) {
       onUpdate({
         ...data,
@@ -195,6 +191,22 @@ export class RemoteSession implements Disposable {
         ),
       });
     }
+  }
+
+  deliverPortForwardingData(): void {
+    const { runnerStatus, runnerClientStatus, _onPortForwardingUpdate: onUpdate } = this;
+
+    if (
+      !(
+        runnerStatus === RunnerStatus.SessionStarted &&
+        runnerClientStatus === RunnerClientStatus.Online
+      )
+    ) {
+      onUpdate();
+      return;
+    }
+
+    this.socket?.emit(VscClientEvent.FetchCurrentPortForwarding);
   }
 
   // MARK: setup runner client

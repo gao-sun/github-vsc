@@ -90,6 +90,10 @@ export class Launchpad implements Disposable {
       this.remoteSession.deliverStatusData();
     }
 
+    if (action === WebviewActionEnum.RequestPortForwardingData) {
+      this.remoteSession.deliverPortForwardingData();
+    }
+
     if (action === WebviewActionEnum.ActivateTerminal) {
       const { shell } = payload as ActivateTerminalPayload;
       this.remoteSession.activateTerminal(shell);
