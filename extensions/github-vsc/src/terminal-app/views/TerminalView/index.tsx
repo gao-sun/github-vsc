@@ -4,6 +4,7 @@ import { FitAddon } from 'xterm-addon-fit';
 import { useResizeDetector } from 'react-resize-detector';
 import WebviewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
 import { vscodeApi } from '@src/core/utils/vscode';
+import logger from '@src/core/utils/logger';
 
 export type Props = {
   id: string;
@@ -16,7 +17,7 @@ const TerminalView = ({ id, terminal, fitAddon, className }: Props) => {
   const onResize = useCallback(() => {
     fitAddon.fit();
     const { rows, cols } = fitAddon.proposeDimensions();
-    console.log('proposed new dimensions', rows, cols);
+    logger.debug('proposed new dimensions', rows, cols);
 
     if (!rows || !cols) {
       return;

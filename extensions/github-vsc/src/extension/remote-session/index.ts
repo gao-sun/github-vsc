@@ -35,6 +35,7 @@ import { getRefKey } from '@src/core/utils/git-ref';
 import { launchRunnerClient, MessageDelivery } from './launch-runner';
 import { RemoteSessionFS } from './fs';
 import { reopenFolder } from '../utils/workspace';
+import logger from '@src/core/utils/logger';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -299,17 +300,17 @@ export class RemoteSession implements Disposable {
       this.terminals = [];
 
       socket.on('connect', () => {
-        console.log('runner connected');
+        logger.info('runner connected');
         socket.emit(VscClientEvent.SetType, this.sessionId);
         this.runnerStatus = RunnerStatus.Connected;
       });
 
       socket.on('error', (error: unknown) => {
-        console.warn('socket returned with error', error);
+        logger.warn('socket returned with error', error);
       });
 
       socket.on('disconnect', () => {
-        console.log('runner disconnected');
+        logger.info('runner disconnected');
 
         this.terminals = [];
         this.socket = undefined;
@@ -332,15 +333,15 @@ export class RemoteSession implements Disposable {
       });
 
       socket.on(RunnerServerEvent.SessionStarted, (sessionId: string) => {
-        console.log('received session started event for id', sessionId);
+        logger.debug('received session started event for id', sessionId);
 
         if (this.sessionId && this.sessionId !== sessionId) {
-          console.warn("session id doesn't match, skipping");
+          logger.warn("session id doesn't match, skipping");
           return;
         }
 
         if (this.runnerStatus !== RunnerStatus.Connected) {
-          console.warn(
+          logger.warn(
             `runner status not correct, expect ${RunnerStatus.Connected}, found ${this.runnerStatus}, skipping`,
           );
           return;
@@ -349,7 +350,7 @@ export class RemoteSession implements Disposable {
         clearTimeoutHandleIfNeeded();
 
         this.registerSocketEventListeners(socket);
-        console.log('session started', sessionId);
+        logger.info('session started', sessionId);
 
         this.runnerStatus = RunnerStatus.SessionStarted;
         this.setPartialRunnerStatusData({
@@ -399,7 +400,7 @@ export class RemoteSession implements Disposable {
 
   private registerSocketEventListeners(socket: Socket) {
     socket.on(RunnerClientEvent.CurrentTerminals, (terminals: TerminalOptions[]) => {
-      console.log('received current terminals', terminals);
+      logger.debug('received current terminals', terminals);
       this.terminals = terminals.map((terminal) => ({
         ...terminal,
         activateTime: dayjs(),
@@ -407,7 +408,7 @@ export class RemoteSession implements Disposable {
       }));
     });
     socket.on(RunnerClientEvent.CurrentPortForwarding, (port?: number) => {
-      console.log('received port forwarding', port);
+      logger.debug('received port forwarding', port);
       this._onPortForwardingUpdate(port);
     });
     socket.on(RunnerClientEvent.TerminalClosed, (terminalId: string) => {
@@ -423,7 +424,7 @@ export class RemoteSession implements Disposable {
       this.terminals = this.terminals.filter(({ id }) => id !== terminalId);
     });
     socket.on(RunnerClientEvent.Stdout, (terminalId: string, data: unknown) => {
-      console.log('stdout', terminalId, data);
+      logger.debug('stdout', terminalId, data);
       this.postTerminalData(terminalId, data);
     });
     socket.on(
@@ -445,7 +446,7 @@ export class RemoteSession implements Disposable {
 
     if (action === WebviewActionEnum.TerminalCmd) {
       const { terminalId, data } = payload as TerminalData;
-      console.log('on input', terminalId, data);
+      logger.debug('on input', terminalId, data);
       this.socket?.emit(VscClientEvent.Cmd, terminalId, data);
     }
 

@@ -9,6 +9,7 @@ import {
   RunnerClientEvent,
   VscClientEvent,
 } from '@github-vsc-runner/core';
+import logger from '@src/core/utils/logger';
 import { Buffer } from 'buffer/';
 import { nanoid } from 'nanoid';
 import { Socket } from 'socket.io-client';
@@ -81,7 +82,7 @@ export class RemoteSessionFS
     // TO-DO: cancel request if needed
     token: CancellationToken,
   ): Promise<Uri[]> {
-    console.log('file search', pattern, options);
+    logger.debug('file search', pattern, options);
     const payload: FSFileSearchPayload = {
       pattern,
       options: { ...options, folder: options.folder.path },
@@ -102,7 +103,7 @@ export class RemoteSessionFS
     // TO-DO: cancel if needed
     token: CancellationToken,
   ): Promise<TextSearchComplete> {
-    console.log('text search', query, options);
+    logger.debug('text search', query, options);
     const payload: FSTextSearchPayload = {
       query,
       options: { ...options, folder: options.folder.toString() },
@@ -124,28 +125,28 @@ export class RemoteSessionFS
   }
 
   stat(uri: Uri): Promise<FileStat> {
-    console.log('stat', uri.toString());
+    logger.debug('stat', uri.toString());
     return this.makePromise(FSEventType.Stat, uri, uri.toString());
   }
 
   readDirectory(uri: Uri): Promise<[string, FileType][]> {
-    console.log('readDirectory', uri.toString());
+    logger.debug('readDirectory', uri.toString());
     return this.makePromise(FSEventType.ReadDirectory, uri, uri.toString());
   }
 
   createDirectory(uri: Uri): Promise<void> {
-    console.log('createDirectory', uri.toString());
+    logger.debug('createDirectory', uri.toString());
     return this.makePromise(FSEventType.CreateDirectory, uri, uri.toString());
   }
 
   async readFile(uri: Uri): Promise<Uint8Array> {
-    console.log('readFile', uri.toString());
+    logger.debug('readFile', uri.toString());
 
     try {
       const content = await this.makePromise(FSEventType.ReadFile, uri, uri.toString(), 10);
       return Buffer.from(content as string, 'utf-8');
     } catch (error) {
-      console.warn('read file caught error', error);
+      logger.warn('read file caught error', error);
       throw error;
     }
   }
@@ -155,7 +156,7 @@ export class RemoteSessionFS
     content: Uint8Array,
     options: { create: boolean; overwrite: boolean },
   ): Promise<void> {
-    console.log('writeFile', uri.toString());
+    logger.debug('writeFile', uri.toString());
     const payload: FSWriteFilePayload = {
       uri: uri.toString(),
       base64Content: Buffer.from(content).toString('base64'),
@@ -167,7 +168,7 @@ export class RemoteSessionFS
   }
 
   delete(uri: Uri, options: { recursive: boolean }): Promise<void> {
-    console.log('delete', uri.toString());
+    logger.debug('delete', uri.toString());
     const payload: FSDeleteFilePayload = {
       uri: uri.toString(),
       options,
@@ -176,7 +177,7 @@ export class RemoteSessionFS
   }
 
   rename(oldUri: Uri, newUri: Uri, options: { overwrite: boolean }): Promise<void> {
-    console.log('reanme', oldUri.toString(), newUri.toString());
+    logger.debug('reanme', oldUri.toString(), newUri.toString());
     const payload: FSRenameOrCopyPayload = {
       oldUri: oldUri.toString(),
       newUri: newUri.toString(),
@@ -186,7 +187,7 @@ export class RemoteSessionFS
   }
 
   copy?(source: Uri, destination: Uri, options: { overwrite: boolean }): Promise<void> {
-    console.log('copy', source.toString(), destination.toString());
+    logger.debug('copy', source.toString(), destination.toString());
     const payload: FSRenameOrCopyPayload = {
       oldUri: source.toString(),
       newUri: destination.toString(),
@@ -227,7 +228,7 @@ export class RemoteSessionFS
 
   registerFSEventHandlers(forSocket: Socket): void {
     const getFSError = (errorUri: Uri, error: NodeJS.ErrnoException): FileSystemError => {
-      console.log('returned error', error);
+      logger.debug('returned error', error);
       if (error.code === 'ENOENT') {
         return FileSystemError.FileNotFound(errorUri);
       }
@@ -254,7 +255,7 @@ export class RemoteSessionFS
         return;
       }
 
-      console.log('received fs event for', uuid);
+      logger.debug('received fs event for', uuid);
       clearTimeout(event.timeoutHandle);
       delete this._eventDict[uuid];
       event.resolve(data);
@@ -263,7 +264,7 @@ export class RemoteSessionFS
     forSocket.on(
       RunnerClientEvent.FSTextSearchMatch,
       (uuid: string, { ranges, path, preview }: FSTextSearchMatch) => {
-        console.log('recevied text match', uuid, path);
+        logger.debug('recevied text match', uuid, path);
         this._eventDict[uuid]?.progress?.report({
           uri: Uri.parse(path),
           ranges: ranges.map(

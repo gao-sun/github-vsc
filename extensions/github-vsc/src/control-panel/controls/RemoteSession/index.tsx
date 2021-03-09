@@ -20,6 +20,7 @@ import { defaultShell } from '@src/core/consts/session';
 import { Props, SessionMethod, sessionOptions } from './foundation';
 import { getRefKey } from '@src/core/utils/git-ref';
 import { availableRunners, RunnerStatusData } from '@src/core/types/session';
+import logger from '@src/core/utils/logger';
 
 // TO-DO: refactor
 const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
@@ -41,7 +42,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   const { runnerStatus, runnerClientStatus, runnerClientOS } = runnerStatusData;
   const emitPortForwarding = useDebouncedCallback(() => {
     const payload = conditional(portForwardingEnabled && Number(portForwarding));
-    console.log('post port forwarding', payload);
+    logger.debug('post port forwarding', payload);
     vscodeApi.postMessage({
       action: WebviewActionEnum.SetPortForwarding,
       payload,
@@ -125,7 +126,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       return;
     }
 
-    console.log('trying to connect with payload', payload);
+    logger.debug('trying to connect with payload', payload);
     vscodeApi.postMessage({ action: WebviewActionEnum.ConnectToRemoteSession, payload });
     setLoading(true);
   };

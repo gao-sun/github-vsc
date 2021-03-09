@@ -13,6 +13,7 @@ import {
 } from './github-fs/types';
 import { buildRef } from '../core/utils/git-ref';
 import { RunnerClientOS } from '@github-vsc-runner/core';
+import logger from '@src/core/utils/logger';
 
 let octokit = new Octokit();
 
@@ -63,7 +64,7 @@ export const readTree = async ({ owner, repo, ref, uri }: GitHubLocation): Promi
       })
       .compact();
   } catch (error) {
-    console.error('error when reading tree', uri.path, error);
+    logger.error('error when reading tree', uri.path, error);
   }
 
   return [];

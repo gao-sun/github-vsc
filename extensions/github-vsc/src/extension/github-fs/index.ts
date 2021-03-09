@@ -59,6 +59,7 @@ import {
 } from './message';
 import { getShortenRef } from '../../core/utils/git-ref';
 import { RepoDataUpdateHandler } from '../launchpad/types';
+import logger from '@src/core/utils/logger';
 
 export class GitHubFS
   implements
@@ -272,7 +273,7 @@ export class GitHubFS
   }
 
   async stat(uri: Uri): Promise<Entry> {
-    console.log('stat', uri.path);
+    logger.debug('stat', uri.path);
 
     const location = this.getLocation(uri);
     if (!location) {
@@ -284,7 +285,7 @@ export class GitHubFS
   }
 
   async readDirectory(uri: Uri): Promise<[string, FileType][]> {
-    console.log('readDirectory', uri.path);
+    logger.debug('readDirectory', uri.path);
 
     const location = this.getLocation(uri);
     if (!location) {
@@ -296,7 +297,7 @@ export class GitHubFS
   }
 
   async readFile(uri: Uri): Promise<Uint8Array> {
-    console.log('readFile', uri.path);
+    logger.debug('readFile', uri.path);
 
     const location = this.getLocation(uri);
 

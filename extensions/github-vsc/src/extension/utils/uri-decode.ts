@@ -3,6 +3,7 @@ import { GitHubFS } from '../github-fs';
 import { getMatchingRef, getRepo } from '../apis';
 import { GitHubLocation } from '../github-fs/types';
 import { getShortenRef } from '../../core/utils/git-ref';
+import logger from '@src/core/utils/logger';
 
 export const getLocation = async (): Promise<Location> => {
   const location = await commands.executeCommand('github-vsc.location.fetch');
@@ -28,7 +29,7 @@ export const getDefaultBranch = async (owner: string, repo: string): Promise<Opt
     } = await getRepo(owner, repo);
     return default_branch;
   } catch {
-    console.error('error when getting repo', owner, repo);
+    logger.error('error when getting repo', owner, repo);
   }
 };
 
@@ -85,7 +86,7 @@ export const decodePathAsGitHubLocation = async (
       ];
     }
   } catch (error) {
-    console.error('error when getting matching ref', owner, repo, error);
+    logger.error('error when getting matching ref', owner, repo, error);
   }
 
   return defaultLocation;

@@ -87,8 +87,8 @@ const getConfig = (_, { mode }) => {
     },
     plugins: [
       new webpack.DefinePlugin({
-        'process.env.NODE_ENV': JSON.stringify('mode'),
-        IS_DEV: JSON.stringify('isDevelopment'),
+        'process.env.NODE_ENV': JSON.stringify(mode),
+        IS_DEV: isDevelopment,
       }),
       new MiniCssExtractPlugin(),
     ],

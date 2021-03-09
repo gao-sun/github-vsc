@@ -13,6 +13,7 @@ import {
 import { wait } from '../utils/wait';
 import { getVSCodeData } from '../utils/global-state';
 import { ExtensionContext } from 'vscode';
+import logger from '@src/core/utils/logger';
 
 const runnerRef: GitHubRef = {
   owner: 'gao-sun',
@@ -102,7 +103,7 @@ export const launchRunnerClient = async (
     });
   } catch (error) {
     deliverMessage(`Launch runner client failed: ${error.toString()}`, 'error');
-    console.warn('unable to launch runner client', error);
+    logger.warn('unable to launch runner client', error);
     return false;
   }
 
