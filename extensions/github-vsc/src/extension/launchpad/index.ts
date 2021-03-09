@@ -65,14 +65,16 @@ export class Launchpad implements Disposable {
     const existingSession = getSessionData(this.extensionContext, urlLocation);
 
     if (
-      !existingSession ||
+      existingSession &&
       (await showSessionRestorePrompt(urlLocation, existingSession, () => {
         openControlPanel();
         this.remoteSession.connectTo(existingSession);
       }))
     ) {
-      this.gitHubFS.switchTo(urlLocation);
+      return;
     }
+
+    this.gitHubFS.switchTo(urlLocation);
   }
 
   // MARK: webview action handler
