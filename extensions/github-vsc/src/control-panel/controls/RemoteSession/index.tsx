@@ -67,7 +67,9 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
 
   useEffect(() => {
     if (sessionData?.sessionId) {
-      setServerAddress(sessionData.serverAddress);
+      if (availableRunners.find(({ address }) => address === sessionData.serverAddress)) {
+        setServerAddress(sessionData.serverAddress);
+      }
       setSessionId(sessionData.sessionId);
       setSessionMethod(SessionMethod.Resume);
     } else {
