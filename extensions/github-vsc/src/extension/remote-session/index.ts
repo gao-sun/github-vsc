@@ -168,7 +168,8 @@ export class RemoteSession implements Disposable {
       onUpdate({
         ...data,
         type: 'error',
-        message: 'Session has been terminated, please create a new one if needed.',
+        message:
+          'The session is not available in the runner or it has been terminated, please ensure you chose the correct runner server or create a new session if needed.',
       });
     }
 
@@ -329,7 +330,6 @@ export class RemoteSession implements Disposable {
         clearTimeoutHandleIfNeeded();
         socket.disconnect();
         this.resetRunnerStatus(RunnerStatus.SessionTerminated);
-        setSessionData(this._extensionContext, data.githubRef, undefined);
       });
 
       socket.on(RunnerServerEvent.SessionStarted, (sessionId: string) => {

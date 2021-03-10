@@ -66,6 +66,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   }, []);
 
   useEffect(() => {
+    logger.debug('setting session', sessionData);
     if (sessionData?.sessionId) {
       if (availableRunners.find(({ address }) => address === sessionData.serverAddress)) {
         setServerAddress(sessionData.serverAddress);
