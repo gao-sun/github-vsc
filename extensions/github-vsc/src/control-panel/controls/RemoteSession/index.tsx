@@ -16,11 +16,11 @@ import { RunnerStatus } from '@src/extension/remote-session/types';
 import { conditional } from '@src/extension/utils/object';
 import { RunnerClientOS, RunnerClientStatus } from '@github-vsc-runner/core';
 import classNames from 'classnames';
-import { defaultShell } from '@src/core/consts/session';
 import { Props, SessionMethod, sessionOptions } from './foundation';
 import { getRefKey } from '@src/core/utils/git-ref';
 import { availableRunners, RunnerStatusData } from '@src/core/types/session';
 import logger from '@src/core/utils/logger';
+import { getDefaultShell } from '@src/core/utils/shell';
 
 // TO-DO: refactor
 const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
@@ -52,7 +52,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   useEffect(() => {
     if (sessionData?.defaultShell || runnerClientOS) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      setShell(sessionData?.defaultShell ?? defaultShell[runnerClientOS!] ?? '');
+      setShell(sessionData?.defaultShell ?? getDefaultShell(runnerClientOS));
     }
   }, [runnerClientOS, sessionData?.defaultShell]);
 

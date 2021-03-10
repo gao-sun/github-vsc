@@ -506,6 +506,14 @@ export class RemoteSession implements Disposable {
       this.terminals = this.terminals.concat(options);
       this.socket?.emit(VscClientEvent.ActivateTerminal, options);
     }
+    const { _data } = this;
+
+    if (_data) {
+      setSessionData(this._extensionContext, _data.githubRef, {
+        ..._data,
+        defaultShell: file,
+      });
+    }
     return true;
   }
 

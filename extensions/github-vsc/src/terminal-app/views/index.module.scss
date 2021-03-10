@@ -24,6 +24,11 @@
   grid-template-columns: repeat(auto-fit, minmax(1px, 1fr));
   position: relative;
 
+  .terminal {
+    // TO-DO: fina a better solution
+    height: 100vh;
+  }
+
   > .terminal + .terminal {
     margin-left: 12px;
     padding-left: 12px;
