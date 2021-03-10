@@ -2,6 +2,7 @@ import {
   commands,
   Disposable,
   ExtensionContext,
+  Uri,
   ViewColumn,
   WebviewPanel,
   window as vsCodeWindow,
@@ -540,6 +541,7 @@ export class RemoteSession implements Disposable {
     );
     const webview = panel.webview;
 
+    panel.iconPath = Uri.joinPath(this._extensionContext.extensionUri, 'static/terminal-icon.svg');
     this._panel = panel;
     configureWebview(
       this._extensionContext,
