@@ -114,11 +114,11 @@ export class GitHubFS
   private reopen(name: string, ref?: GitHubRef) {
     this._githubRef = ref;
     reopenFolder(name, GitHubFS.rootUri);
+    this.ghfsSCM.removeAllChangedFiles();
     // update decorations
     this.ghfsSCM
       .getChangedFiles()
       .forEach((uri) => this._fireSoon({ type: FileChangeType.Changed, uri }));
-    this.ghfsSCM.removeAllChangedFiles();
     this.updateBroswerUrl();
     this.updateRepoData();
   }
@@ -153,37 +153,9 @@ export class GitHubFS
     }
   }
 
-  async switchTo(location?: GitHubLocation): Promise<void> {
-    // get from browser URL
-    if (!location) {
-      const [urlLocation, defaultBranch] = await decodePathAsGitHubLocation();
-      this.defaultBranch = defaultBranch;
-
-      if (!urlLocation) {
-        return showNoLocationWarning(() =>
-          this.switchTo({
-            owner: 'gao-sun',
-            repo: 'github-vsc',
-            ref: 'master',
-            uri: Uri.joinPath(GitHubFS.rootUri, 'README.md'),
-          }),
-        );
-      }
-
-      if (!defaultBranch) {
-        return showNoDefaultBranchWarning(urlLocation);
-      }
-
-      return this.switchTo(urlLocation);
-    }
-
+  async switchTo(location: GitHubLocation): Promise<void> {
     const description = getGitHubRefDescription(location);
     this._root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
-
-    if (!location) {
-      this.reopen(description, undefined);
-      return;
-    }
 
     const { uri, ...githubRef } = location;
 
@@ -212,12 +184,6 @@ export class GitHubFS
         }`,
       );
     }
-  }
-
-  // MARK: webview action handler
-  // TO-DO: refactor
-  onDataUpdated(): void {
-    this.switchTo();
   }
 
   // MARK: disposable

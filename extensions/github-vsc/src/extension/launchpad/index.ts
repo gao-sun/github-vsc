@@ -3,9 +3,10 @@ import WebviewAction, {
   ActivateTerminalPayload,
   WebviewActionEnum,
 } from '@src/core/types/webview-action';
-import { Disposable, ExtensionContext, window as vsCodeWindow } from 'vscode';
+import { Disposable, ExtensionContext, Uri, window as vsCodeWindow } from 'vscode';
 import { ControlPanelView } from '../control-panel-view';
 import { GitHubFS } from '../github-fs';
+import { showNoDefaultBranchWarning, showNoLocationWarning } from '../github-fs/message';
 import { RemoteSession } from '../remote-session';
 import {
   commitChanges,
@@ -37,7 +38,7 @@ export class Launchpad implements Disposable {
       extensionContext,
       (payload) => deliverRemoteSessionData(this.controlPanelView.getWebview(), payload),
       (port) => setPortForwarding(this.controlPanelView.getWebview(), port),
-      () => this.gitHubFS.switchTo(),
+      () => this.init(),
     );
 
     // disposable
@@ -55,14 +56,19 @@ export class Launchpad implements Disposable {
 
   // MARK: init
   private async init() {
-    const [urlLocation] = await decodePathAsGitHubLocation();
+    const [urlLocation, defaultBranch] = await decodePathAsGitHubLocation();
+    const existingSession = getSessionData(this.extensionContext, urlLocation);
 
     if (!urlLocation) {
-      this.gitHubFS.switchTo();
-      return;
+      return showNoLocationWarning(() =>
+        this.gitHubFS.switchTo({
+          owner: 'gao-sun',
+          repo: 'github-vsc',
+          ref: 'master',
+          uri: Uri.joinPath(GitHubFS.rootUri, 'README.md'),
+        }),
+      );
     }
-
-    const existingSession = getSessionData(this.extensionContext, urlLocation);
 
     if (
       existingSession &&
@@ -72,6 +78,10 @@ export class Launchpad implements Disposable {
       }))
     ) {
       return;
+    }
+
+    if (!defaultBranch) {
+      return showNoDefaultBranchWarning(urlLocation);
     }
 
     this.gitHubFS.switchTo(urlLocation);
@@ -124,7 +134,7 @@ export class Launchpad implements Disposable {
     }
 
     if (action === WebviewActionEnum.ValidatePAT) {
-      validatePAT(webview, context, payload, () => this.gitHubFS.onDataUpdated());
+      validatePAT(webview, context, payload, () => this.init());
     }
 
     if (action === WebviewActionEnum.CommitChanges) {

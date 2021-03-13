@@ -105,7 +105,7 @@ export const showNoDefaultBranchWarning = async ({
 }: GitHubLocation): Promise<void> => {
   const choose = await vsCodeWindow.showWarningMessage(
     `Unable to fetch the default branch of ${owner}/${repo}.` +
-      ' Please check if you have entered the right URL and PAT is configured for private access, if applicable.',
+      ' Please check if you have entered the right URL and PAT is configured with repo scope for private access, if applicable.',
     { modal: true },
     'Setup PAT',
   );
