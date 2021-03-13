@@ -4,7 +4,13 @@
 		"nameLong": "GitHub VSC",
 		"applicationName": "github-vsc",
 		"dataFolderName": ".vscode-web",
-		"version": "1.0.0"
+		"version": "1.0.0",
+		"linkProtectionTrustedDomains": [
+			"github.com",
+			"*.github.com",
+			"github-vsc.com",
+			"*.github-vsc.com"
+		]
 	},
 	"folderUri": {
 		"scheme": "github-fs",
