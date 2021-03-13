@@ -21,7 +21,6 @@ import { nanoid } from 'nanoid';
 import { TerminalData } from '@core/types/foundation';
 import configureWebview from '../utils/configure-webview';
 import WebviewAction, {
-  ActivateTerminalPayload,
   RemoteSessionDataPayload,
   TerminalDimensionsPayload,
   WebviewActionEnum,
@@ -443,9 +442,7 @@ export class RemoteSession implements Disposable {
           );
           await commands.executeCommand('revealInExplorer', RemoteSessionFS.rootUri);
           await openControlPanel();
-          this.activateTerminalIfNeeded(
-            this._data?.defaultShell ?? getDefaultShell(runnerClientOS),
-          );
+          this.activateTerminalIfNeeded();
         }
       },
     );
@@ -463,8 +460,7 @@ export class RemoteSession implements Disposable {
     }
 
     if (action === WebviewActionEnum.ActivateTerminal) {
-      const { shell } = payload as ActivateTerminalPayload;
-      this.activateTerminal(shell);
+      this.activateTerminal(payload?.shell);
     }
 
     if (action === WebviewActionEnum.TerminalSetDimensions) {
@@ -501,7 +497,7 @@ export class RemoteSession implements Disposable {
     this._panel?.webview.postMessage(action);
   }
 
-  activateTerminal(file: string, ignoreIfExists = false): boolean {
+  activateTerminal(file?: string, ignoreIfExists = false): boolean {
     if (this.runnerClientStatus === RunnerClientStatus.Offline) {
       return false;
     }
@@ -509,7 +505,10 @@ export class RemoteSession implements Disposable {
     if (!ignoreIfExists || !this.terminals.length) {
       const options: TerminalInstance = {
         id: nanoid(),
-        file,
+        file:
+          file ??
+          this._data?.defaultShell ??
+          getDefaultShell(this._runnerStatusData.runnerClientOS),
         cols: 80,
         rows: 30,
         activateTime: dayjs(),
@@ -529,7 +528,7 @@ export class RemoteSession implements Disposable {
     return true;
   }
 
-  activateTerminalIfNeeded(file: string): boolean {
+  activateTerminalIfNeeded(file?: string): boolean {
     return this.activateTerminal(file, true);
   }
 
