@@ -12,6 +12,9 @@ const messagePromptKey = 'MESSAGE_PROMPT';
 export const getVSCodeData = (context: ExtensionContext): Optional<VSCodeData> =>
   getState(context).get(vsCodeDataKey);
 
+export const hasPAT = (context: ExtensionContext): boolean =>
+  !!getVSCodeData(context)?.userContext?.pat;
+
 export const setPartialVSCodeData = async (
   context: ExtensionContext,
   partial: Partial<VSCodeData>,

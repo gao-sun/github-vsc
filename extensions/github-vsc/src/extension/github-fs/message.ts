@@ -1,12 +1,7 @@
 import { env, Uri, ExtensionContext, window as vsCodeWindow } from 'vscode';
 import { openControlPanel } from '../utils/commands';
-import {
-  getMessagePromptDisabled,
-  getVSCodeData,
-  setMessagePromptDisabled,
-} from '../utils/global-state';
+import { getMessagePromptDisabled, hasPAT, setMessagePromptDisabled } from '../utils/global-state';
 import { conditionalString, conditional } from '../utils/object';
-import { GitHubLocation } from './types';
 
 const globalSearchLimitationKey = 'GLOBAL_SEARCH_LIMITATION';
 let hasGlobalSearchLimitationInfoShown = false;
@@ -59,7 +54,7 @@ export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promis
   }
 
   hasGlobalSearchAPIInfoShown = true;
-  const hasAuthToken = !!getVSCodeData(context)?.userContext?.pat;
+  const hasAuthToken = hasPAT(context);
 
   const choose = await vsCodeWindow.showInformationMessage(
     'The Search API has a custom rate limit. ' +
@@ -82,56 +77,20 @@ export const showGlobalSearchAPIInfo = async (context: ExtensionContext): Promis
   }
 };
 
-export const showNoLocationWarning = async (onDemo: () => void): Promise<void> => {
+let hasEditingNotValidWarningShown = false;
+
+export const showEditingNotValidWarning = async (): Promise<void> => {
+  if (hasEditingNotValidWarningShown) {
+    return;
+  }
+
+  hasEditingNotValidWarningShown = true;
   const choose = await vsCodeWindow.showInformationMessage(
-    "It looks like there's no owner/repo info in the URL. Go to the GitHub VSC homepage for more information.",
-    { modal: true },
-    'See Demo',
-    'Open Homepage',
-  );
-
-  if (choose === 'See Demo') {
-    onDemo();
-  }
-
-  if (choose === 'Open Homepage') {
-    env.openExternal(Uri.parse('https://github.com/gao-sun/github-vsc'));
-  }
-};
-
-export const showNoDefaultBranchWarning = async ({
-  owner,
-  repo,
-}: GitHubLocation): Promise<void> => {
-  const choose = await vsCodeWindow.showWarningMessage(
-    `Unable to fetch the default branch of ${owner}/${repo}.` +
-      ' Please check if you have entered the right URL and PAT is configured with repo scope for private access, if applicable.',
+    'Setup PAT for committing changes to the branch or starting a pull request.',
     { modal: true },
     'Setup PAT',
   );
   if (choose === 'Setup PAT') {
     openControlPanel();
-  }
-};
-
-const welcomeInfoKey = 'WELCOME_INFO';
-
-export const showWelcomeInfo = async (context: ExtensionContext): Promise<void> => {
-  if (getMessagePromptDisabled(context, welcomeInfoKey)) {
-    return;
-  }
-
-  const choose = await vsCodeWindow.showInformationMessage(
-    'GitHub VSC is an open-source project which is NOT created by GitHub nor Microsoft. Go to the homepage for more information.',
-    'Open Homepage',
-    "Don't Bug Me Again",
-  );
-
-  if (choose === 'Open Homepage') {
-    env.openExternal(Uri.parse('https://github.com/gao-sun/github-vsc'));
-  }
-
-  if (choose?.startsWith("Don't")) {
-    setMessagePromptDisabled(context, welcomeInfoKey, true);
   }
 };

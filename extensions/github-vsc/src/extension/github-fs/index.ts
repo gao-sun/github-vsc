@@ -42,19 +42,18 @@ import {
   getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
 } from './helpers';
-import { decodePathAsGitHubLocation, replaceLocation } from '../utils/uri-decode';
+import { replaceLocation } from '../utils/uri-decode';
 import { getPermission, searchCode } from '../apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
 import { GitHubRef } from '@core/types/foundation';
-import { getVSCodeData } from '../utils/global-state';
+import { getVSCodeData, hasPAT } from '../utils/global-state';
 import {
   showGlobalSearchLimitationInfo,
   showGlobalSearchAPIInfo,
-  showNoLocationWarning,
-  showNoDefaultBranchWarning,
+  showEditingNotValidWarning,
 } from './message';
 import { getShortenRef } from '../../core/utils/git-ref';
 import { RepoDataUpdateHandler } from '../launchpad/types';
@@ -126,6 +125,8 @@ export class GitHubFS
   private async updateRepoData(fetchPermission = true) {
     const vsCodeData = await getVSCodeData(this.extensionContext);
 
+    logger.debug('updating repo data', fetchPermission);
+
     if (!this.githubRef) {
       this.onRepoDataUpdate(undefined);
       return;
@@ -154,6 +155,8 @@ export class GitHubFS
   }
 
   async switchTo(location: GitHubLocation): Promise<void> {
+    logger.debug('switching to', location);
+
     const description = getGitHubRefDescription(location);
     this._root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
 
@@ -280,6 +283,11 @@ export class GitHubFS
 
     if (!location) {
       return;
+    }
+
+    if (!hasPAT(this.extensionContext)) {
+      showEditingNotValidWarning();
+      return Promise.reject('Unable to save the change due to no PAT was found.');
     }
 
     try {

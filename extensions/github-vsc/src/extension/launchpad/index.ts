@@ -3,10 +3,10 @@ import WebviewAction, {
   ActivateTerminalPayload,
   WebviewActionEnum,
 } from '@src/core/types/webview-action';
+import logger from '@src/core/utils/logger';
 import { Disposable, ExtensionContext, Uri, window as vsCodeWindow } from 'vscode';
 import { ControlPanelView } from '../control-panel-view';
 import { GitHubFS } from '../github-fs';
-import { showNoDefaultBranchWarning, showNoLocationWarning } from '../github-fs/message';
 import { RemoteSession } from '../remote-session';
 import {
   commitChanges,
@@ -19,7 +19,13 @@ import {
 import { openControlPanel } from '../utils/commands';
 import { getSessionData, getVSCodeData } from '../utils/global-state';
 import { decodePathAsGitHubLocation } from '../utils/uri-decode';
-import { confirmDiscardEditorChanges, showSessionRestorePrompt } from './message';
+import {
+  confirmDiscardEditorChanges,
+  showNoDefaultBranchWarning,
+  showNoLocationWarning,
+  showSessionRestorePrompt,
+  showWelcomeInfo,
+} from './message';
 
 export class Launchpad implements Disposable {
   private readonly remoteSession: RemoteSession;
@@ -48,6 +54,7 @@ export class Launchpad implements Disposable {
     );
 
     this.init();
+    showWelcomeInfo(extensionContext);
   }
 
   dispose(): void {
@@ -58,6 +65,8 @@ export class Launchpad implements Disposable {
   private async init() {
     const [urlLocation, defaultBranch] = await decodePathAsGitHubLocation();
     const existingSession = getSessionData(this.extensionContext, urlLocation);
+
+    logger.debug('launchpad init', urlLocation, defaultBranch);
 
     if (!urlLocation) {
       return showNoLocationWarning(() =>
