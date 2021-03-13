@@ -149,6 +149,9 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
     runnerClientStatus === RunnerClientStatus.Offline;
   const isPortForwardingValid = portForwardingEnabled && !!Number(portForwarding);
   const portForwardingLink = `https://${sessionId}.${new URL(serverAddress).host}`;
+  const isSessionStarted = [RunnerStatus.SessionStarted, RunnerStatus.Disconnected].includes(
+    runnerStatus,
+  );
 
   if (!userContext) {
     return (
@@ -176,7 +179,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
   return (
     <div className={styles.remoteSession}>
       <Title>Remote Session</Title>
-      {runnerStatus !== RunnerStatus.SessionStarted && (
+      {!isSessionStarted && (
         <>
           <Description>
             Start a remote session to enable terminal access on {getRefKey(repoData.ref)}.<br />
@@ -243,7 +246,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
           </div>
         </>
       )}
-      {runnerStatus === RunnerStatus.SessionStarted && (
+      {isSessionStarted && (
         <>
           <div className={styles.row}>
             <Title level={3} noMargin>

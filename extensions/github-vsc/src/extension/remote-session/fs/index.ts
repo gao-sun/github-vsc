@@ -56,6 +56,10 @@ export class RemoteSessionFS
   private _socket?: Socket;
   private _eventDict: Dictionary<string, FSEventObject> = {};
 
+  get hasSocket(): boolean {
+    return !!this._socket;
+  }
+
   // MARK: disposable
   private readonly disposable: Disposable;
 

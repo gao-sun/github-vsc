@@ -6,6 +6,7 @@ import {
   ViewColumn,
   WebviewPanel,
   window as vsCodeWindow,
+  workspace,
 } from 'vscode';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -56,7 +57,7 @@ export class RemoteSession implements Disposable {
   private _terminals: TerminalInstance[];
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
   private _onPortForwardingUpdate: (port?: number) => void;
-  private _onDisconnect: () => void;
+  private _onDisconnected: () => void;
   private _runnerStatusData: RunnerStatusData = {
     runnerStatus: RunnerStatus.Initial,
     runnerClientStatus: RunnerClientStatus.Offline,
@@ -127,12 +128,12 @@ export class RemoteSession implements Disposable {
     extensionContext: ExtensionContext,
     onUpdate: (payload: RemoteSessionDataPayload) => void,
     onPortForwardingUpdate: (port?: number) => void,
-    onDisconnect: () => void,
+    onDisconnected: () => void,
   ) {
     this._extensionContext = extensionContext;
     this._onUpdate = onUpdate;
     this._onPortForwardingUpdate = onPortForwardingUpdate;
-    this._onDisconnect = onDisconnect;
+    this._onDisconnected = onDisconnected;
     this._terminals = [];
     this._disposable = Disposable.from(this.fileSystem);
   }
@@ -181,7 +182,7 @@ export class RemoteSession implements Disposable {
         ...data,
         type: 'error',
         message:
-          'Runner server disconnected, this may infer an upgrade/maintenance. Please try to connect later.',
+          'Runner server disconnected, this may infer an upgrade/maintenance. Trying to re-connect...',
       });
     }
 
@@ -257,6 +258,7 @@ export class RemoteSession implements Disposable {
   }
 
   // MARK: session control
+  // TO-DO: refactor
   async connectTo(data: SessionData): Promise<boolean> {
     const existingSession = getSessionData(this._extensionContext, data.githubRef);
     if (existingSession?.sessionId && existingSession.sessionId !== data.sessionId) {
@@ -306,7 +308,11 @@ export class RemoteSession implements Disposable {
       socket.on('connect', () => {
         logger.info('runner connected');
         socket.emit(VscClientEvent.SetType, this.sessionId);
-        this.runnerStatus = RunnerStatus.Connected;
+
+        // not resumed from existing session
+        if (this.runnerStatus !== RunnerStatus.Disconnected) {
+          this.runnerStatus = RunnerStatus.Connected;
+        }
       });
 
       socket.on('error', (error: unknown) => {
@@ -315,18 +321,17 @@ export class RemoteSession implements Disposable {
 
       socket.on('disconnect', () => {
         logger.info('runner disconnected');
+        clearTimeoutHandleIfNeeded();
+
+        if (this.runnerStatus === RunnerStatus.SessionStarted) {
+          this.resetRunnerStatus(RunnerStatus.Disconnected);
+          return;
+        }
 
         this.terminals = [];
         this.socket = undefined;
-        if ([RunnerStatus.Connected, RunnerStatus.SessionStarted].includes(this.runnerStatus)) {
-          this.resetRunnerStatus(RunnerStatus.Disconnected);
-        }
 
-        clearTimeoutHandleIfNeeded();
-        this._onDisconnect();
-
-        // TO-DO: remove this line to re-connect runner automatically
-        socket.close();
+        this._onDisconnected();
       });
 
       socket.on(RunnerServerEvent.SessionTerminated, () => {
@@ -343,6 +348,14 @@ export class RemoteSession implements Disposable {
           return;
         }
 
+        // resumed from existing session
+        if (this.runnerStatus === RunnerStatus.Disconnected) {
+          this.runnerStatus = RunnerStatus.SessionStarted;
+          this.retrieveRunnerInfo();
+          logger.warn('resumed from existing session');
+          return;
+        }
+
         if (this.runnerStatus !== RunnerStatus.Connected) {
           logger.warn(
             `runner status not correct, expect ${RunnerStatus.Connected}, found ${this.runnerStatus}, skipping`,
@@ -355,7 +368,6 @@ export class RemoteSession implements Disposable {
         this.registerSocketEventListeners(socket);
         logger.info('session started', sessionId);
 
-        this.runnerStatus = RunnerStatus.SessionStarted;
         this.setPartialRunnerStatusData({
           sessionId,
           runnerStatus: RunnerStatus.SessionStarted,
@@ -420,7 +432,7 @@ export class RemoteSession implements Disposable {
           0) >= -terminalLiveThreshold
       ) {
         vsCodeWindow.showWarningMessage(
-          `Terminal closed in ${terminalLiveThreshold} seconds, this may indicates an error. Please make sure the shell file exists in the runner client OS.`,
+          `Terminal closed in ${terminalLiveThreshold} seconds, this may indicate an error. Please make sure the shell file exists in the runner client OS.`,
         );
       }
 
@@ -435,12 +447,19 @@ export class RemoteSession implements Disposable {
       async (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
         this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
         if (runnerClientStatus === RunnerClientStatus.Online) {
-          this.fileSystem.registerFSEventHandlers(socket);
-          await reopenFolder(
-            `${getGitHubRefDescription(this._data?.githubRef)} (Remote Session)`,
-            RemoteSessionFS.rootUri,
-          );
-          await commands.executeCommand('revealInExplorer', RemoteSessionFS.rootUri);
+          if (!this.fileSystem.hasSocket) {
+            this.fileSystem.registerFSEventHandlers(socket);
+          }
+
+          if (
+            !workspace.workspaceFolders?.some(({ uri }) => uri.scheme === RemoteSessionFS.scheme)
+          ) {
+            await reopenFolder(
+              `${getGitHubRefDescription(this._data?.githubRef)} (Remote Session)`,
+              RemoteSessionFS.rootUri,
+            );
+            await commands.executeCommand('revealInExplorer', RemoteSessionFS.rootUri);
+          }
           await openControlPanel();
           this.activateTerminalIfNeeded();
         }
@@ -551,6 +570,7 @@ export class RemoteSession implements Disposable {
     );
     const webview = panel.webview;
 
+    panel.onDidDispose(() => (this._panel = undefined));
     panel.iconPath = Uri.joinPath(this._extensionContext.extensionUri, 'static/terminal-icon.svg');
     this._panel = panel;
     configureWebview(
@@ -568,7 +588,6 @@ export class RemoteSession implements Disposable {
   private setupPanelIfNeeded() {
     if (!this.terminals.length) {
       this._panel?.dispose();
-      this._panel = undefined;
     } else {
       this.revealPanel();
     }
