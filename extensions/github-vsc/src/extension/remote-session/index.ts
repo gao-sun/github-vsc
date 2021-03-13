@@ -40,6 +40,7 @@ import logger from '@src/core/utils/logger';
 import { getGitHubRefDescription } from '../github-fs/helpers';
 import { openControlPanel } from '../utils/commands';
 import { getDefaultShell } from '@src/core/utils/shell';
+import { runnerErrorMesage } from './consts';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -163,6 +164,10 @@ export class RemoteSession implements Disposable {
 
     if (data.runnerStatus === RunnerStatus.Initial) {
       onUpdate({ ...data, type: 'message' });
+
+      if (data.runnerError) {
+        onUpdate({ ...data, type: 'error', message: runnerErrorMesage[data.runnerError] });
+      }
 
       if (data.runnerError === RunnerError.Timeout) {
         onUpdate({
