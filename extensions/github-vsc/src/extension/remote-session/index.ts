@@ -27,7 +27,7 @@ import WebviewAction, {
   WebviewActionEnum,
 } from '@src/core/types/webview-action';
 import { SessionData } from '@src/core/types/foundation';
-import { RunnerStatus } from './types';
+import { RunnerError, RunnerStatus } from './types';
 import { conditional } from '../utils/object';
 import { RunnerStatusData, allRunners, RunnerServerType } from '@src/core/types/session';
 import { getSessionData, setSessionData } from '../utils/global-state';
@@ -115,10 +115,11 @@ export class RemoteSession implements Disposable {
     }
   }
 
-  private resetRunnerStatus(runnerStatus = RunnerStatus.Initial) {
+  private resetRunnerStatus(runnerStatus = RunnerStatus.Initial, runnerError?: RunnerError) {
     this.setPartialRunnerStatusData({
       sessionId: undefined,
       runnerStatus,
+      runnerError,
       runnerClientStatus: RunnerClientStatus.Offline,
       runnerClientOS: undefined,
     });
@@ -156,25 +157,38 @@ export class RemoteSession implements Disposable {
       });
     }
 
-    if ([RunnerStatus.Initial, RunnerStatus.Connecting].includes(data.runnerStatus)) {
+    if (data.runnerStatus === RunnerStatus.Connecting) {
       onUpdate({ ...data, type: 'message' });
     }
 
-    if (data.runnerStatus === RunnerStatus.SessionTimeout) {
-      onUpdate({
-        ...data,
-        type: 'error',
-        message: 'Connection timeout. Please try another runner.',
-      });
-    }
+    if (data.runnerStatus === RunnerStatus.Initial) {
+      onUpdate({ ...data, type: 'message' });
 
-    if (data.runnerStatus === RunnerStatus.SessionTerminated) {
-      onUpdate({
-        ...data,
-        type: 'error',
-        message:
-          'The session is not available in the runner or it has been terminated, please ensure you chose the correct runner server or create a new session if needed.',
-      });
+      if (data.runnerError === RunnerError.Timeout) {
+        onUpdate({
+          ...data,
+          type: 'error',
+          message: 'Connection timeout. Please try another runner.',
+        });
+      }
+
+      if (data.runnerError === RunnerError.SessionTerminated) {
+        onUpdate({
+          ...data,
+          type: 'error',
+          message:
+            'The session is not available in the runner or it has been terminated, please ensure you chose the correct runner server or create a new session if needed.',
+        });
+      }
+
+      if (data.runnerError === RunnerError.SessionIdDoesNotMatch) {
+        onUpdate({
+          ...data,
+          type: 'error',
+          message:
+            "The registered session ID for this client doesn't match. Please check your input.",
+        });
+      }
     }
 
     if (data.runnerStatus === RunnerStatus.Disconnected) {
@@ -258,7 +272,6 @@ export class RemoteSession implements Disposable {
   }
 
   // MARK: session control
-  // TO-DO: refactor
   async connectTo(data: SessionData): Promise<boolean> {
     const existingSession = getSessionData(this._extensionContext, data.githubRef);
     if (existingSession?.sessionId && existingSession.sessionId !== data.sessionId) {
@@ -287,10 +300,10 @@ export class RemoteSession implements Disposable {
           )
         ) {
           socket.disconnect();
-          this.resetRunnerStatus(RunnerStatus.SessionTimeout);
+          this.resetRunnerStatus(RunnerStatus.Initial, RunnerError.Timeout);
           resolve(false);
         }
-      }, 20000);
+      }, 10000);
       const clearTimeoutHandleIfNeeded = () => {
         if (timeoutHandle) {
           clearTimeout(timeoutHandle);
@@ -300,98 +313,73 @@ export class RemoteSession implements Disposable {
       this.setPartialRunnerStatusData({
         sessionId: data.sessionId,
         runnerStatus: RunnerStatus.Connecting,
+        runnerError: undefined,
         runnerClientStatus: RunnerClientStatus.Offline,
       });
       this.socket = socket;
       this.terminals = [];
+      this.registerSocketEventListeners(socket);
+      this.fileSystem.registerFSEventHandlers(socket);
 
       socket.on('connect', () => {
+        clearTimeoutHandleIfNeeded();
         logger.info('runner connected');
         socket.emit(VscClientEvent.SetType, this.sessionId);
+        this.runnerStatus = RunnerStatus.Connected;
 
-        // not resumed from existing session
-        if (this.runnerStatus !== RunnerStatus.Disconnected) {
-          this.runnerStatus = RunnerStatus.Connected;
-        }
-      });
+        socket.once(RunnerServerEvent.SessionStarted, (sessionId: string) => {
+          logger.debug('received session started event for id', sessionId);
 
-      socket.on('error', (error: unknown) => {
-        logger.warn('socket returned with error', error);
+          if (this.sessionId && this.sessionId !== sessionId) {
+            logger.warn("session id doesn't match, skipping");
+            this.disconnectRunner(RunnerError.SessionIdDoesNotMatch);
+            return;
+          }
+
+          logger.info('session started', sessionId);
+
+          this.setPartialRunnerStatusData({
+            sessionId,
+            runnerStatus: RunnerStatus.SessionStarted,
+          });
+          this._onPortForwardingUpdate();
+          setSessionData(this._extensionContext, data.githubRef, { ...data, sessionId });
+
+          const isNewSession = !this.sessionId;
+          this.sessionId = sessionId;
+
+          if (isNewSession) {
+            this.launchRunnerClient();
+          } else {
+            this.retrieveRunnerInfo();
+          }
+        });
+
+        resolve(true);
       });
 
       socket.on('disconnect', () => {
         logger.info('runner disconnected');
-        clearTimeoutHandleIfNeeded();
 
-        if (this.runnerStatus === RunnerStatus.SessionStarted) {
-          this.resetRunnerStatus(RunnerStatus.Disconnected);
-          return;
-        }
-
-        this.terminals = [];
-        this.socket = undefined;
-
-        this._onDisconnected();
+        this.resetRunnerStatus(RunnerStatus.Disconnected);
       });
 
-      socket.on(RunnerServerEvent.SessionTerminated, () => {
-        clearTimeoutHandleIfNeeded();
-        socket.disconnect();
-        this.resetRunnerStatus(RunnerStatus.SessionTerminated);
-      });
-
-      socket.on(RunnerServerEvent.SessionStarted, (sessionId: string) => {
-        logger.debug('received session started event for id', sessionId);
-
-        if (this.sessionId && this.sessionId !== sessionId) {
-          logger.warn("session id doesn't match, skipping");
-          return;
-        }
-
-        // resumed from existing session
-        if (this.runnerStatus === RunnerStatus.Disconnected) {
-          this.runnerStatus = RunnerStatus.SessionStarted;
-          this.retrieveRunnerInfo();
-          logger.warn('resumed from existing session');
-          return;
-        }
-
-        if (this.runnerStatus !== RunnerStatus.Connected) {
-          logger.warn(
-            `runner status not correct, expect ${RunnerStatus.Connected}, found ${this.runnerStatus}, skipping`,
-          );
-          return;
-        }
-
-        clearTimeoutHandleIfNeeded();
-
-        this.registerSocketEventListeners(socket);
-        logger.info('session started', sessionId);
-
-        this.setPartialRunnerStatusData({
-          sessionId,
-          runnerStatus: RunnerStatus.SessionStarted,
-        });
-        this._onPortForwardingUpdate();
-        setSessionData(this._extensionContext, data.githubRef, { ...data, sessionId });
-
-        const isNewSession = !this.sessionId;
-        this.sessionId = sessionId;
-
-        if (isNewSession) {
-          this.launchRunnerClient();
-        } else {
-          this.retrieveRunnerInfo();
-        }
-        resolve(true);
+      socket.on('error', (error: unknown) => {
+        logger.warn('socket returned with error', error);
+        // TO-DO: prompt info if needed
       });
     });
   }
 
-  disconnect(): void {
-    this.resetRunnerStatus(RunnerStatus.Initial);
+  disconnectRunner(error?: RunnerError): void {
+    this.socket?.offAny();
     this.socket?.disconnect();
-    this.sessionId = undefined;
+    this.fileSystem.removeSocket();
+    this._data = undefined;
+    this.terminals = [];
+    this.socket = undefined;
+    this.resetRunnerStatus(RunnerStatus.Initial, error);
+    this._onDisconnected();
   }
 
   async terminate(): Promise<boolean> {
@@ -406,7 +394,7 @@ export class RemoteSession implements Disposable {
     if (answer === 'OK') {
       setSessionData(this._extensionContext, this._data?.githubRef, undefined);
       this.socket?.emit(VscClientEvent.TerminateSession);
-      this.disconnect();
+      this.disconnectRunner();
       return true;
     }
 
@@ -414,6 +402,9 @@ export class RemoteSession implements Disposable {
   }
 
   private registerSocketEventListeners(socket: Socket) {
+    socket.on(RunnerServerEvent.SessionTerminated, () => {
+      this.disconnectRunner(RunnerError.SessionTerminated);
+    });
     socket.on(RunnerClientEvent.CurrentTerminals, (terminals: TerminalOptions[]) => {
       logger.debug('received current terminals', terminals);
       this.terminals = terminals.map((terminal) => ({
@@ -421,6 +412,7 @@ export class RemoteSession implements Disposable {
         activateTime: dayjs(),
         restoredFromRemote: true,
       }));
+      this.activateTerminalIfNeeded();
     });
     socket.on(RunnerClientEvent.CurrentPortForwarding, (port?: number) => {
       logger.debug('received port forwarding', port);
@@ -447,9 +439,8 @@ export class RemoteSession implements Disposable {
       async (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
         this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
         if (runnerClientStatus === RunnerClientStatus.Online) {
-          if (!this.fileSystem.hasSocket) {
-            this.fileSystem.registerFSEventHandlers(socket);
-          }
+          socket.emit(VscClientEvent.FetchCurrentTerminals);
+          socket.emit(VscClientEvent.FetchCurrentPortForwarding);
 
           if (
             !workspace.workspaceFolders?.some(({ uri }) => uri.scheme === RemoteSessionFS.scheme)
@@ -461,7 +452,6 @@ export class RemoteSession implements Disposable {
             await commands.executeCommand('revealInExplorer', RemoteSessionFS.rootUri);
           }
           await openControlPanel();
-          this.activateTerminalIfNeeded();
         }
       },
     );
@@ -490,8 +480,6 @@ export class RemoteSession implements Disposable {
 
   private retrieveRunnerInfo() {
     this.socket?.emit(VscClientEvent.CheckRunnerStatus);
-    this.socket?.emit(VscClientEvent.FetchCurrentTerminals);
-    this.socket?.emit(VscClientEvent.FetchCurrentPortForwarding);
   }
 
   // MARK: port forwarding
@@ -521,21 +509,22 @@ export class RemoteSession implements Disposable {
       return false;
     }
 
-    if (!ignoreIfExists || !this.terminals.length) {
-      const options: TerminalInstance = {
-        id: nanoid(),
-        file:
-          file ??
-          this._data?.defaultShell ??
-          getDefaultShell(this._runnerStatusData.runnerClientOS),
-        cols: 80,
-        rows: 30,
-        activateTime: dayjs(),
-        restoredFromRemote: false,
-      };
-      this.terminals = this.terminals.concat(options);
-      this.socket?.emit(VscClientEvent.ActivateTerminal, options);
+    if (ignoreIfExists && this.terminals.length) {
+      return true;
     }
+
+    const options: TerminalInstance = {
+      id: nanoid(),
+      file:
+        file ?? this._data?.defaultShell ?? getDefaultShell(this._runnerStatusData.runnerClientOS),
+      cols: 80,
+      rows: 30,
+      activateTime: dayjs(),
+      restoredFromRemote: false,
+    };
+    this.terminals = this.terminals.concat(options);
+    this.socket?.emit(VscClientEvent.ActivateTerminal, options);
+
     const { _data } = this;
 
     if (_data) {

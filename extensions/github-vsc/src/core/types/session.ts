@@ -1,9 +1,10 @@
 import { RunnerClientOS, RunnerClientStatus } from '@github-vsc-runner/core';
-import { RunnerStatus } from '@src/extension/remote-session/types';
+import { RunnerError, RunnerStatus } from '@src/extension/remote-session/types';
 
 export type RunnerStatusData = {
   sessionId?: string;
   runnerStatus: RunnerStatus;
+  runnerError?: RunnerError;
   runnerClientStatus: RunnerClientStatus;
   runnerClientOS?: RunnerClientOS;
 };

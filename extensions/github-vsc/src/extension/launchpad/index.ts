@@ -87,7 +87,7 @@ export class Launchpad implements Disposable {
         this.gitHubFS.ghfsSCM.getChangedFiles().length > 0 &&
         !(await confirmDiscardEditorChanges())
       ) {
-        this.remoteSession.disconnect();
+        this.remoteSession.disconnectRunner();
         return;
       }
 
@@ -114,7 +114,7 @@ export class Launchpad implements Disposable {
     }
 
     if (action === WebviewActionEnum.DisconnectRemoteRession) {
-      this.remoteSession.disconnect();
+      this.remoteSession.disconnectRunner();
     }
 
     if (action === WebviewActionEnum.TerminateRemoteRession) {

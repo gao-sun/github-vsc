@@ -89,6 +89,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       } = payload as RemoteSessionDataPayload;
 
       setRunnerStatusData(runnerStatusData);
+      setSessionId(runnerStatusData.sessionId ?? '');
 
       if (type === 'message') {
         setError('');

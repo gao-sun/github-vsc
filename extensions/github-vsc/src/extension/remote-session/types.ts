@@ -4,6 +4,10 @@ export enum RunnerStatus {
   Connecting = 'Connecting',
   Connected = 'Connected',
   SessionStarted = 'SessionStarted',
-  SessionTimeout = 'SessionTimeout',
+}
+
+export enum RunnerError {
+  Timeout = 'Timeout',
   SessionTerminated = 'SessionTerminated',
+  SessionIdDoesNotMatch = 'SessionIdDoesNotMatch',
 }

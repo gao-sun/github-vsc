@@ -297,6 +297,10 @@ export class RemoteSessionFS
     });
   }
 
+  removeSocket(): void {
+    this._socket = undefined;
+  }
+
   // MARK: file events
   private _fileChangeEmitter = new EventEmitter<FileChangeEvent[]>();
   private _bufferedFileEvents: FileChangeEvent[] = [];
