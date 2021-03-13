@@ -55,11 +55,11 @@ import {
   showGlobalSearchAPIInfo,
   showNoLocationWarning,
   showNoDefaultBranchWarning,
-  openControlPanel,
 } from './message';
 import { getShortenRef } from '../../core/utils/git-ref';
 import { RepoDataUpdateHandler } from '../launchpad/types';
 import logger from '@src/core/utils/logger';
+import { openControlPanel } from '../utils/commands';
 
 export class GitHubFS
   implements

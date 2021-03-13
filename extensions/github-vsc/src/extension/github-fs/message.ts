@@ -1,4 +1,5 @@
-import { env, Uri, ExtensionContext, window as vsCodeWindow, commands } from 'vscode';
+import { env, Uri, ExtensionContext, window as vsCodeWindow } from 'vscode';
+import { openControlPanel } from '../utils/commands';
 import {
   getMessagePromptDisabled,
   getVSCodeData,
@@ -6,9 +7,6 @@ import {
 } from '../utils/global-state';
 import { conditionalString, conditional } from '../utils/object';
 import { GitHubLocation } from './types';
-
-export const openControlPanel = (): Thenable<void> =>
-  commands.executeCommand('workbench.action.setSideBarViewIndex', 5);
 
 const globalSearchLimitationKey = 'GLOBAL_SEARCH_LIMITATION';
 let hasGlobalSearchLimitationInfoShown = false;

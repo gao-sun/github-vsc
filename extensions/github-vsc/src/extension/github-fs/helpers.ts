@@ -1,4 +1,5 @@
 import { GitHubRef } from '@core/types/foundation';
+import { getNormalRef } from '@src/core/utils/git-ref';
 import { window as vsCodeWindow, commands, Uri, Range, TextSearchMatch } from 'vscode';
 import { GitHubFS } from '.';
 import { SearchResponse } from '../apis';
@@ -7,7 +8,7 @@ import { lookup } from './lookup';
 import { Directory, File, GitHubLocation } from './types';
 
 export const getGitHubRefDescription = (ref?: GitHubRef): string =>
-  (ref && `${ref.owner}/${ref.repo}:${ref.ref}`) ?? 'GitHub VSC';
+  (ref && `${ref.owner}/${ref.repo}:${getNormalRef(ref.ref)}`) ?? 'GitHub VSC';
 
 export const showDocumentOrRevealFolderIfNeeded = async (
   root: Directory,

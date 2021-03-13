@@ -6,7 +6,6 @@ import WebviewAction, {
 import { Disposable, ExtensionContext, window as vsCodeWindow } from 'vscode';
 import { ControlPanelView } from '../control-panel-view';
 import { GitHubFS } from '../github-fs';
-import { openControlPanel } from '../github-fs/message';
 import { RemoteSession } from '../remote-session';
 import {
   commitChanges,
@@ -16,6 +15,7 @@ import {
   updateRepoData,
   validatePAT,
 } from '../utils/action-handler';
+import { openControlPanel } from '../utils/commands';
 import { getSessionData, getVSCodeData } from '../utils/global-state';
 import { decodePathAsGitHubLocation } from '../utils/uri-decode';
 import { confirmDiscardEditorChanges, showSessionRestorePrompt } from './message';

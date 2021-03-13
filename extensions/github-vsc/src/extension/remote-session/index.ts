@@ -37,6 +37,9 @@ import { launchRunnerClient, MessageDelivery } from './launch-runner';
 import { RemoteSessionFS } from './fs';
 import { reopenFolder } from '../utils/workspace';
 import logger from '@src/core/utils/logger';
+import { getGitHubRefDescription } from '../github-fs/helpers';
+import { openControlPanel } from '../utils/commands';
+import { getDefaultShell } from '@src/core/utils/shell';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -361,13 +364,13 @@ export class RemoteSession implements Disposable {
         this._onPortForwardingUpdate();
         setSessionData(this._extensionContext, data.githubRef, { ...data, sessionId });
 
-        const isNewSession = !!this.sessionId;
+        const isNewSession = !this.sessionId;
         this.sessionId = sessionId;
 
         if (isNewSession) {
-          this.retrieveRunnerInfo();
-        } else {
           this.launchRunnerClient();
+        } else {
+          this.retrieveRunnerInfo();
         }
         resolve(true);
       });
@@ -430,11 +433,19 @@ export class RemoteSession implements Disposable {
     });
     socket.on(
       RunnerServerEvent.RunnerStatus,
-      (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
+      async (runnerClientStatus: RunnerClientStatus, runnerClientOS: RunnerClientOS) => {
         this.setPartialRunnerStatusData({ runnerClientStatus, runnerClientOS });
         if (runnerClientStatus === RunnerClientStatus.Online) {
           this.fileSystem.registerFSEventHandlers(socket);
-          reopenFolder('Remote Session', RemoteSessionFS.rootUri);
+          await reopenFolder(
+            `${getGitHubRefDescription(this._data?.githubRef)} (Remote Session)`,
+            RemoteSessionFS.rootUri,
+          );
+          await commands.executeCommand('revealInExplorer', RemoteSessionFS.rootUri);
+          await openControlPanel();
+          this.activateTerminalIfNeeded(
+            this._data?.defaultShell ?? getDefaultShell(runnerClientOS),
+          );
         }
       },
     );
