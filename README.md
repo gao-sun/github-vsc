@@ -1,6 +1,6 @@
 # GitHub VSC
 
-Use VSCode to view and commit changes on GitHub repos, in your browser. Inspired by github1s.
+Launch VSCode dev environment in your browser. For free.
 
 ## How?
 
@@ -12,10 +12,13 @@ E.g. `github.com/gao-sun/eul` -> `github-vsc.com/gao-sun/eul`
 
 ## Highlights
 
-- Available for private repos
-- `Cmd + P` (quick navigation) support
-- Global text search support (on the default branch)
-- Document editing with GitHub commits (fork/commit/pull request)
+🔑 Simple. Just need a PAT for everything.
+
+⚡ Super fast. Get your dev environment ready in up to 10s.
+
+🔌 Flexible. Available for private repos and self-hosted runners.
+
+📝 Cozy. Can just be an online editor without remote session.
 
 ## Screenshots
 
