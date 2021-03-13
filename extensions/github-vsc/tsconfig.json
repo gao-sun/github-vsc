@@ -17,7 +17,8 @@
 		],
 		"paths": {
 			"@/*": ["./src/control-panel/*"],
-			"@src/*": ["./src/*"]
+			"@src/*": ["./src/*"],
+			"@core/*": ["./src/core/*"]
 		},
 		/* Additional Checks */
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */

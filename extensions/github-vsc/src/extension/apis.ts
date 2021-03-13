@@ -1,6 +1,6 @@
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { OctokitResponse } from '@octokit/types';
-import { GitHubRef, UserContext } from '@src/types/foundation';
+import { GitHubRef, UserContext } from '@core/types/foundation';
 import { Buffer } from 'buffer/';
 import { FileType, Uri } from 'vscode';
 import {
@@ -11,7 +11,9 @@ import {
   GitHubLocation,
   GitHubTreeItem,
 } from './github-fs/types';
-import { buildRef } from './utils/git-ref';
+import { buildRef } from '../core/utils/git-ref';
+import { RunnerClientOS } from '@github-vsc-runner/core';
+import logger from '@src/core/utils/logger';
 
 let octokit = new Octokit();
 
@@ -62,7 +64,7 @@ export const readTree = async ({ owner, repo, ref, uri }: GitHubLocation): Promi
       })
       .compact();
   } catch (error) {
-    console.error('error when reading tree', uri.path, error);
+    logger.error('error when reading tree', uri.path, error);
   }
 
   return [];
@@ -203,3 +205,46 @@ export const isForkReady = async (owner: string, repo: string): Promise<boolean>
   }
   return true;
 };
+
+export const dispatchRunnerWorkflow = (
+  owner: string,
+  repo: string,
+  ref: string,
+  serverAddress: string,
+  os: RunnerClientOS,
+  sessionId: string,
+  repository?: string,
+  repositoryRef?: string,
+): Promise<RestEndpointMethodTypes['actions']['createWorkflowDispatch']['response']> =>
+  octokit.actions.createWorkflowDispatch({
+    owner,
+    repo,
+    workflow_id: 'runner-client.yml',
+    ref,
+    // can be optional
+    inputs: { serverAddress, os, sessionId, repository, ref: repositoryRef } as Record<
+      string,
+      string
+    >,
+  });
+
+export const getActionsPublicKey = (
+  owner: string,
+  repo: string,
+): Promise<RestEndpointMethodTypes['actions']['getRepoPublicKey']['response']> =>
+  octokit.actions.getRepoPublicKey({ owner, repo });
+
+export const updateActionsRepoSecret = (
+  owner: string,
+  repo: string,
+  secretName: string,
+  encrypted: string,
+  keyId: string,
+): Promise<RestEndpointMethodTypes['actions']['createOrUpdateRepoSecret']['response']> =>
+  octokit.actions.createOrUpdateRepoSecret({
+    owner,
+    repo,
+    secret_name: secretName,
+    encrypted_value: encrypted,
+    key_id: keyId,
+  });

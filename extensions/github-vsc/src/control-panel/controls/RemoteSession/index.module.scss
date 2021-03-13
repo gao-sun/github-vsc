@@ -1,0 +1,55 @@
+.remoteSession {
+  select,
+  input[type='text'] {
+    display: block;
+    width: 100%;
+  }
+
+  .action {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .unplug {
+    margin-bottom: 12px;
+
+    > * + * {
+      margin-left: 12px;
+    }
+  }
+
+  .terminal {
+    input {
+      width: initial;
+      margin-right: 12px;
+    }
+  }
+
+  .portForwarding {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    input[type='text'] {
+      flex-grow: 1;
+      margin-right: 12px;
+    }
+
+    input[type='checkbox'] {
+      margin: 0;
+      margin-right: 4px;
+    }
+
+    label {
+      user-select: none;
+    }
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 4px 0;
+  }
+}

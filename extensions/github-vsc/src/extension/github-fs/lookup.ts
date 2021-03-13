@@ -1,3 +1,4 @@
+import logger from '@src/core/utils/logger';
 import { FileSystemError } from 'vscode';
 import { getData, getEntries, isDataDirtyWithoutFetching } from './getter';
 import { Directory, Entry, EntryMap, File, GitHubLocation } from './types';
@@ -37,7 +38,7 @@ export const lookupEntry = async (
     entry = child;
   }
 
-  console.log('lookup result', owner, repo, ref, uri.path, entry);
+  logger.debug('lookup result', owner, repo, ref, uri.path, entry);
 
   if (entry instanceof File) {
     return entry;

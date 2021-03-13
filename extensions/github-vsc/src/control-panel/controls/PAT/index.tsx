@@ -4,9 +4,9 @@ import Spacer from '@/components/Spacer';
 import Button from '@/components/Button';
 
 import styles from './index.module.scss';
-import { vscodeApi } from '@/utils/vscode';
-import WebViewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
-import useListenMessage from '@/hooks/useListenMessage';
+import { vscodeApi } from '@core/utils/vscode';
+import WebViewAction, { WebviewActionEnum } from '@src/core/types/webview-action';
+import useListenMessage from '@core/hooks/useListenMessage';
 import Title from '@/components/Title';
 import Description from '@/components/Description';
 
@@ -103,7 +103,17 @@ const PAT = ({ token }: Props) => {
           </>
         )}
       </div>
-      <Description>{getDescription()}</Description>
+      <Description>
+        {getDescription()}
+        {!hasToken && (
+          <>
+            &nbsp;
+            <a href="https://github.com/settings/tokens/new?description=GitHub%20VSC%20Token&scopes=repo">
+              Create PAT
+            </a>
+          </>
+        )}
+      </Description>
     </div>
   );
 };

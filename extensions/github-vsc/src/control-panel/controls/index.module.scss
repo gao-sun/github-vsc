@@ -1,17 +1,35 @@
-.app {
-  > * + * {
-    margin-top: 24px;
+:root {
+  background: var(--vscode-sideBar-background);
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--vscode-sideBar-background);
+    border-top: 1px solid rgba(#eee, 0.1);
   }
 }
 
-input[type='text'] {
+.app {
+  > * + * {
+    margin-top: 20px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(#eee, 0.1);
+  }
+}
+
+input[type='text'],
+select {
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
   border-radius: 2px;
   outline: none;
   flex-grow: 1;
-  padding: 4px 8px;
+  padding: 0 8px;
+  height: 27px;
+  line-height: 27px;
 
   &:disabled {
     opacity: 0.8;

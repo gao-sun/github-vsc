@@ -16,6 +16,7 @@ const getConfig = (_, { mode }) => {
     mode: 'none', // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
     entry: {
       'control-panel': './src/control-panel/index.tsx',
+      'terminal-app': './src/terminal-app/index.tsx',
     }, // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
     output: {
       // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
@@ -32,6 +33,7 @@ const getConfig = (_, { mode }) => {
       alias: {
         '@': path.resolve(__dirname, 'src/control-panel'),
         '@src': path.resolve(__dirname, 'src'),
+        '@core': path.resolve(__dirname, 'src/core'),
       },
     },
     module: {
@@ -69,11 +71,24 @@ const getConfig = (_, { mode }) => {
             },
           ],
         },
+        {
+          test: /\.css$/,
+          use: [
+            isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
+            {
+              loader: 'css-loader',
+              options: {
+                sourceMap: isDevelopment,
+              },
+            },
+          ],
+        },
       ],
     },
     plugins: [
       new webpack.DefinePlugin({
-        'process.env.NODE_ENV': JSON.stringify('development'),
+        'process.env.NODE_ENV': JSON.stringify(mode),
+        IS_DEV: isDevelopment,
       }),
       new MiniCssExtractPlugin(),
     ],

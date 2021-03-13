@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 //@ts-check
 
 'use strict';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const path = require('path');
+const webpack = require('webpack');
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -26,6 +27,7 @@ const config = {
     extensions: ['.ts', '.js'],
     alias: {
       '@src': path.resolve(__dirname, 'src'),
+      '@core': path.resolve(__dirname, 'src/core'),
     },
   },
   module: {
@@ -49,5 +51,10 @@ const config = {
       },
     ],
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      IS_DEV: process.env.NODE_ENV !== 'production',
+    }),
+  ],
 };
 module.exports = config;

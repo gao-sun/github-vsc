@@ -37,30 +37,28 @@ import {
   lookupAsFile,
   lookupIfFileDirtyWithoutFetching,
 } from './lookup';
-import { ControlPanelView } from '../control-panel-view';
 import {
   convertGitHubSearchResponseToSearchResult,
   getGitHubRefDescription,
   showDocumentOrRevealFolderIfNeeded,
 } from './helpers';
-import { decodePathAsGitHubLocation, replaceLocation } from '../utils/uri-decode';
+import { replaceLocation } from '../utils/uri-decode';
 import { getPermission, searchCode } from '../apis';
 import { reopenFolder } from '../utils/workspace';
 import { writeFile } from './write-file';
 import { GHFSSourceControl } from './source-control';
 import { isDataDirtyWithoutFetching } from './getter';
-import { GitHubRef } from '@src/types/foundation';
-import { postUpdateData, commitChanges, updateRepoData, validatePAT } from './action-handler';
-import { getVSCodeData } from '../utils/global-state';
+import { GitHubRef } from '@core/types/foundation';
+import { getVSCodeData, hasPAT } from '../utils/global-state';
 import {
   showGlobalSearchLimitationInfo,
   showGlobalSearchAPIInfo,
-  showNoLocationWarning,
-  showNoDefaultBranchWarning,
-  openControlPanel,
+  showEditingNotValidWarning,
 } from './message';
-import WebviewAction, { WebviewActionEnum } from '@src/types/WebviewAction';
-import { getShortenRef } from '../utils/git-ref';
+import { getShortenRef } from '../../core/utils/git-ref';
+import { RepoDataUpdateHandler } from '../launchpad/types';
+import logger from '@src/core/utils/logger';
+import { openControlPanel } from '../utils/commands';
 
 export class GitHubFS
   implements
@@ -73,12 +71,24 @@ export class GitHubFS
   static rootUri = Uri.parse(`${GitHubFS.scheme}:/`);
 
   // MARK: fs properties
-  private ghfsSCM: GHFSSourceControl;
-  private root = new Directory(GitHubFS.rootUri, '', '', GitFileMode.Tree);
-  private githubRef?: GitHubRef;
-  private controlPanelView: ControlPanelView;
+  private _ghfsSCM: GHFSSourceControl;
+  private _root = new Directory(GitHubFS.rootUri, '', '', GitFileMode.Tree);
+  private _githubRef?: GitHubRef;
   private defaultBranch?: string;
+  private onRepoDataUpdate: RepoDataUpdateHandler;
   readonly extensionContext: ExtensionContext;
+
+  get ghfsSCM(): GHFSSourceControl {
+    return this._ghfsSCM;
+  }
+
+  get root(): Directory {
+    return this._root;
+  }
+
+  get githubRef(): Optional<GitHubRef> {
+    return this._githubRef;
+  }
 
   // MARK: fs helpers
   private getLocation(uri: Uri): Optional<GitHubLocation> {
@@ -101,13 +111,13 @@ export class GitHubFS
   }
 
   private reopen(name: string, ref?: GitHubRef) {
-    this.githubRef = ref;
-    reopenFolder(name);
+    this._githubRef = ref;
+    reopenFolder(name, GitHubFS.rootUri);
+    this.ghfsSCM.removeAllChangedFiles();
     // update decorations
     this.ghfsSCM
       .getChangedFiles()
       .forEach((uri) => this._fireSoon({ type: FileChangeType.Changed, uri }));
-    this.ghfsSCM.removeAllChangedFiles();
     this.updateBroswerUrl();
     this.updateRepoData();
   }
@@ -115,8 +125,10 @@ export class GitHubFS
   private async updateRepoData(fetchPermission = true) {
     const vsCodeData = await getVSCodeData(this.extensionContext);
 
+    logger.debug('updating repo data', fetchPermission);
+
     if (!this.githubRef) {
-      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), undefined);
+      this.onRepoDataUpdate(undefined);
       return;
     }
 
@@ -127,14 +139,14 @@ export class GitHubFS
         ? (await getPermission(owner, repo, vsCodeData?.userContext)).data.permission
         : vsCodeData?.repoData?.permission;
 
-      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
+      this.onRepoDataUpdate({
         ref: this.githubRef,
         permission,
         commitMessage: this.ghfsSCM.scm.inputBox.value,
         changedFiles: this.ghfsSCM.getChangedFiles(),
       });
     } catch {
-      updateRepoData(this.extensionContext, this.controlPanelView.getWebview(), {
+      this.onRepoDataUpdate({
         ref: this.githubRef,
         commitMessage: this.ghfsSCM.scm.inputBox.value,
         changedFiles: this.ghfsSCM.getChangedFiles(),
@@ -142,37 +154,11 @@ export class GitHubFS
     }
   }
 
-  private async switchTo(location?: GitHubLocation): Promise<void> {
-    // get from browser URL
-    if (!location) {
-      const [urlLocation, defaultBranch] = await decodePathAsGitHubLocation();
-      this.defaultBranch = defaultBranch;
-
-      if (!urlLocation) {
-        return showNoLocationWarning(() =>
-          this.switchTo({
-            owner: 'gao-sun',
-            repo: 'github-vsc',
-            ref: 'master',
-            uri: Uri.joinPath(GitHubFS.rootUri, 'README.md'),
-          }),
-        );
-      }
-
-      if (!defaultBranch) {
-        return showNoDefaultBranchWarning(urlLocation);
-      }
-
-      return this.switchTo(urlLocation);
-    }
+  async switchTo(location: GitHubLocation): Promise<void> {
+    logger.debug('switching to', location);
 
     const description = getGitHubRefDescription(location);
-    this.root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
-
-    if (!location) {
-      this.reopen(description, undefined);
-      return;
-    }
+    this._root = new Directory(GitHubFS.rootUri, description, description, GitFileMode.Tree);
 
     const { uri, ...githubRef } = location;
 
@@ -203,44 +189,19 @@ export class GitHubFS
     }
   }
 
-  // MARK: webview action handler
-  private onDataUpdated() {
-    this.switchTo();
-  }
-
-  private async actionHandler({ action, payload }: WebviewAction) {
-    const webview = this.controlPanelView.getWebview();
-    const context = this.extensionContext;
-
-    if (action === WebviewActionEnum.ValidatePAT) {
-      validatePAT(webview, context, payload, () => this.onDataUpdated());
-    }
-
-    if (action === WebviewActionEnum.CommitChanges) {
-      commitChanges(webview, this.githubRef, payload, this.ghfsSCM.getChangedFiles(), this.root);
-    }
-
-    if (action === WebviewActionEnum.RequestData) {
-      postUpdateData(webview, getVSCodeData(context));
-    }
-  }
-
   // MARK: disposable
   private readonly disposable: Disposable;
 
-  constructor(extensionContext: ExtensionContext) {
+  constructor(extensionContext: ExtensionContext, onRepoDataUpdate: RepoDataUpdateHandler) {
     this.extensionContext = extensionContext;
-    this.ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
-    this.controlPanelView = new ControlPanelView(extensionContext, (action) =>
-      this.actionHandler(action),
-    );
+    this.onRepoDataUpdate = onRepoDataUpdate;
+    this._ghfsSCM = new GHFSSourceControl(GitHubFS.rootUri);
     this.disposable = Disposable.from(
       workspace.registerFileSystemProvider(GitHubFS.scheme, this, {
         isCaseSensitive: true,
       }),
       workspace.registerFileSearchProvider(GitHubFS.scheme, this),
       workspace.registerTextSearchProvider(GitHubFS.scheme, this),
-      vsCodeWindow.registerWebviewViewProvider('github-vsc-control-panel', this.controlPanelView),
       // change uri when document opening/closing
       vsCodeWindow.onDidChangeActiveTextEditor(() => this.updateBroswerUrl()),
       vsCodeWindow.registerFileDecorationProvider(this),
@@ -250,12 +211,10 @@ export class GitHubFS
       }),
       this.ghfsSCM,
     );
-
-    this.switchTo();
   }
 
   dispose(): void {
-    this.disposable?.dispose();
+    this.disposable.dispose();
   }
 
   // MARK: FileDecorationProvider implementation
@@ -283,7 +242,7 @@ export class GitHubFS
   }
 
   async stat(uri: Uri): Promise<Entry> {
-    console.log('stat', uri.path);
+    logger.debug('stat', uri.path);
 
     const location = this.getLocation(uri);
     if (!location) {
@@ -295,7 +254,7 @@ export class GitHubFS
   }
 
   async readDirectory(uri: Uri): Promise<[string, FileType][]> {
-    console.log('readDirectory', uri.path);
+    logger.debug('readDirectory', uri.path);
 
     const location = this.getLocation(uri);
     if (!location) {
@@ -307,7 +266,7 @@ export class GitHubFS
   }
 
   async readFile(uri: Uri): Promise<Uint8Array> {
-    console.log('readFile', uri.path);
+    logger.debug('readFile', uri.path);
 
     const location = this.getLocation(uri);
 
@@ -324,6 +283,11 @@ export class GitHubFS
 
     if (!location) {
       return;
+    }
+
+    if (!hasPAT(this.extensionContext)) {
+      showEditingNotValidWarning();
+      return Promise.reject('Unable to save the change due to no PAT was found.');
     }
 
     try {

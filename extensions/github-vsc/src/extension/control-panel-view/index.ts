@@ -1,7 +1,6 @@
-import { ExtensionContext, Uri, Webview, WebviewView, WebviewViewProvider } from 'vscode';
-import WebviewAction from '@src/types/WebviewAction';
-
-import view from './view.html';
+import { ExtensionContext, Webview, WebviewView, WebviewViewProvider } from 'vscode';
+import WebviewAction from '@src/core/types/webview-action';
+import configureWebview from '../utils/configure-webview';
 
 export class ControlPanelView implements WebviewViewProvider {
   private readonly _extensionContext: ExtensionContext;
@@ -17,23 +16,18 @@ export class ControlPanelView implements WebviewViewProvider {
   }
 
   resolveWebviewView(webviewView: WebviewView): void {
-    const extensionUri = this._extensionContext.extensionUri;
     const webview = webviewView.webview;
-    const scriptPath = Uri.joinPath(extensionUri, 'dist', 'control-panel.js');
-    const stylesPath = Uri.joinPath(extensionUri, 'dist', 'control-panel.css');
-    const scriptUri = webview.asWebviewUri(scriptPath);
-    const stylesUri = webview.asWebviewUri(stylesPath);
 
-    this.webview = webview;
-    webview.onDidReceiveMessage(
+    configureWebview(
+      this._extensionContext,
+      webview,
+      'control-panel',
+      'GitHub VSC Control Panel',
       this._actionHanlder,
-      undefined,
       this._extensionContext.subscriptions,
     );
-    webview.options = { enableScripts: true };
-    webview.html = view
-      .replace('$SCRIPT_URI$', scriptUri.toString())
-      .replace('$STYLES_URI$', stylesUri.toString());
+
+    this.webview = webview;
   }
 
   getWebview(): Optional<Webview> {

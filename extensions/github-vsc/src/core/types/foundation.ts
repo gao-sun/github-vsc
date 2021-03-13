@@ -1,3 +1,4 @@
+import { RunnerClientOS } from '@github-vsc-runner/core';
 import { Uri } from 'vscode';
 
 export type GitHubRef = {
@@ -23,6 +24,7 @@ export type RepoData = {
 export type VSCodeData = {
   userContext?: UserContext;
   repoData?: RepoData;
+  sessionDict: Dictionary<string, SessionData>;
 };
 
 export enum CommitMethod {
@@ -30,3 +32,16 @@ export enum CommitMethod {
   PR = 'pr',
   Fork = 'fork',
 }
+
+export type TerminalData = {
+  terminalId: string;
+  data: string | Uint8Array;
+};
+
+export type SessionData = {
+  githubRef?: GitHubRef;
+  sessionId?: string;
+  serverAddress: string;
+  os?: RunnerClientOS;
+  defaultShell?: string;
+};
