@@ -6,7 +6,6 @@ import sealedBox from 'tweetnacl-sealedbox-js';
 import {
   createFork,
   dispatchRunnerWorkflow,
-  enableRunnerRepoActions,
   getActionsPublicKey,
   isForkReady,
   updateActionsRepoSecret,
@@ -73,42 +72,74 @@ const setupRepoPAT = async (
   await updateActionsRepoSecret(owner, repo, 'RUNNER_ACTIONS_PAT', encrypted, key_id);
 };
 
-export const launchRunnerClient = async (
+export const setupRunnerClientRepo = async (
   extensionContext: ExtensionContext,
+  deliverMessage: MessageDelivery,
+): Promise<[Optional<string>, Optional<string>]> => {
+  try {
+    const [owner, repo] = await forkRunnerRepo(deliverMessage);
+    await setupRepoPAT(extensionContext, deliverMessage, owner, repo);
+    return [owner, repo];
+  } catch (error) {
+    deliverMessage(`Setup runner client repo failed: ${error.toString()}`, 'error');
+    logger.warn('unable to setup runner client repo', JSON.stringify(error, undefined, 2));
+  }
+
+  return [undefined, undefined];
+};
+
+export const dispatchRunnerClientWorkflow = async (
   deliverMessage: MessageDelivery,
   serverAddress: string,
   os: RunnerClientOS,
   sessionId: string,
   githubRef: GitHubRef,
+  runnerClientRef: GitHubRef,
+  onTimeoutUpdate: (timeout: ReturnType<typeof setTimeout>) => void,
 ): Promise<boolean> => {
-  try {
-    const [owner, repo] = await forkRunnerRepo(deliverMessage);
-    const ref = 'refs/heads/master';
+  deliverMessage('Dispatching workflow for runner client...');
 
-    await setupRepoPAT(extensionContext, deliverMessage, owner, repo);
-    deliverMessage('Enabling Actions for runner client repo...');
-    await enableRunnerRepoActions(owner, repo);
-    deliverMessage('Launching workflow for runner client...');
-    await dispatchRunnerWorkflow(
-      owner,
-      repo,
-      ref,
-      serverAddress,
-      os,
-      sessionId,
-      `${githubRef.owner}/${githubRef.repo}`,
-      githubRef.ref,
-    );
-    deliverMessage('Workflow dispatched, waiting for runner response...', 'message', {
-      owner,
-      repo,
-      ref,
+  const dispatch = () =>
+    new Promise<boolean>((resolve) => {
+      const _dispatch = async () => {
+        try {
+          await dispatchRunnerWorkflow(
+            runnerClientRef.owner,
+            runnerClientRef.repo,
+            runnerClientRef.ref,
+            serverAddress,
+            os,
+            sessionId,
+            `${githubRef.owner}/${githubRef.repo}`,
+            githubRef.ref,
+          );
+          resolve(true);
+        } catch (error) {
+          // I know this is stupid, but they don't care about this
+          // https://github.community/t/how-to-run-and-enable-github-actions-on-forked-repo-with-github-api/17232
+          if (error.status === 404) {
+            deliverMessage(
+              'Unable to dispatch workflow. If this is your first try you need to manually enable workflow runs on the forked repo.',
+              'error',
+              runnerClientRef,
+            );
+            onTimeoutUpdate(setTimeout(_dispatch, 2500));
+            return;
+          }
+          throw error;
+        }
+      };
+
+      _dispatch();
     });
+
+  try {
+    await dispatch();
   } catch (error) {
-    deliverMessage(`Launch runner client failed: ${error.toString()}`, 'error');
-    logger.warn('unable to launch runner client', error);
-    return false;
+    deliverMessage(`Dispatch runner client workflow failed: ${error.toString()}`, 'error');
+    logger.warn('unable to dispatch runner client workflow', JSON.stringify(error, undefined, 2));
   }
 
+  deliverMessage('Workflow dispatched, waiting for runner response...', 'message', runnerClientRef);
   return true;
 };

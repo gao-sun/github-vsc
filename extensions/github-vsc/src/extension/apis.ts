@@ -206,13 +206,6 @@ export const isForkReady = async (owner: string, repo: string): Promise<boolean>
   return true;
 };
 
-export const enableRunnerRepoActions = (
-  owner: string,
-  repo: string,
-): Promise<
-  RestEndpointMethodTypes['actions']['setGithubActionsPermissionsRepository']['response']
-> => octokit.actions.setGithubActionsPermissionsRepository({ owner, repo, enabled: true });
-
 export const dispatchRunnerWorkflow = (
   owner: string,
   repo: string,

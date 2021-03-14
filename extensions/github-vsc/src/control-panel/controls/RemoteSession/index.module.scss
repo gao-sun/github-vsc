@@ -24,6 +24,10 @@
       width: initial;
       margin-right: 12px;
     }
+
+    button {
+      flex-shrink: 0;
+    }
   }
 
   .portForwarding {

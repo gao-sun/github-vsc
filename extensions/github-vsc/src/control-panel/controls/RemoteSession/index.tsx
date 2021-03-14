@@ -99,6 +99,7 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
       if (type === 'error') {
         setError(message ?? 'Error occurred.');
         setMessage('');
+        setWorkflowRef(workflowRef);
         setLoading(false);
       }
       if (
@@ -338,7 +339,20 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
           )}
         </>
       )}
-      {error && <Tip type="warning">{error}</Tip>}
+      {error && (
+        <Tip type="warning">
+          {error}
+          {shouldShowWorkflowRef && (
+            <>
+              <br />
+              <a href={`https://github.com/${workflowRef?.owner}/${workflowRef?.repo}/actions`}>
+                Click here
+              </a>{' '}
+              to enable in GitHub.
+            </>
+          )}
+        </Tip>
+      )}
       {(loading || message) && !error && (
         <Tip>
           {message || 'Connecting...'}
@@ -349,8 +363,8 @@ const RemoteSession = ({ repoData, sessionData, userContext }: Props) => {
                 href={`https://github.com/${workflowRef?.owner}/${workflowRef?.repo}/actions/workflows/runner-client.yml`}
               >
                 Click here
-              </a>
-              &nbsp; to check your workflow status.
+              </a>{' '}
+              to check your workflow status.
             </>
           )}
         </Tip>

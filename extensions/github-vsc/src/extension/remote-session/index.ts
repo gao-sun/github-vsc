@@ -33,7 +33,11 @@ import { RunnerStatusData, allRunners, RunnerServerType } from '@src/core/types/
 import { getSessionData, setSessionData } from '../utils/global-state';
 import dayjs, { Dayjs } from 'dayjs';
 import { getRefKey } from '@src/core/utils/git-ref';
-import { launchRunnerClient, MessageDelivery } from './launch-runner';
+import {
+  setupRunnerClientRepo,
+  MessageDelivery,
+  dispatchRunnerClientWorkflow,
+} from './launch-runner';
 import { RemoteSessionFS } from './fs';
 import { reopenFolder } from '../utils/workspace';
 import logger from '@src/core/utils/logger';
@@ -41,6 +45,7 @@ import { getGitHubRefDescription } from '../github-fs/helpers';
 import { openControlPanel } from '../utils/commands';
 import { getDefaultShell } from '@src/core/utils/shell';
 import { runnerErrorMesage } from './consts';
+import { dispatchRunnerWorkflow } from '../apis';
 
 type TerminalInstance = TerminalOptions & {
   activateTime: Dayjs;
@@ -59,6 +64,7 @@ export class RemoteSession implements Disposable {
   private _onUpdate: (payload: RemoteSessionDataPayload) => void;
   private _onPortForwardingUpdate: (port?: number) => void;
   private _onDisconnected: () => void;
+  private _workflowDispatchTimeout: Optional<ReturnType<typeof setTimeout>>;
   private _runnerStatusData: RunnerStatusData = {
     runnerStatus: RunnerStatus.Initial,
     runnerClientStatus: RunnerClientStatus.Offline,
@@ -235,6 +241,12 @@ export class RemoteSession implements Disposable {
   }
 
   // MARK: setup runner client
+  private clearWorkflowDispatchTimeoutIfNeeded() {
+    if (this._workflowDispatchTimeout) {
+      clearTimeout(this._workflowDispatchTimeout);
+    }
+  }
+
   private async launchRunnerClient() {
     // skip non GitHub Actions client
     // support customization in the future, if this project gets a lot of stars :-)
@@ -263,16 +275,28 @@ export class RemoteSession implements Disposable {
       return;
     }
 
+    this.clearWorkflowDispatchTimeoutIfNeeded();
     const deliverMessage: MessageDelivery = (message, type = 'message', workflowRef) => {
       this._onUpdate({ ...this.runnerStatusData, type, message, workflowRef });
     };
-    await launchRunnerClient(
-      this._extensionContext,
+    const [owner, repo] = await setupRunnerClientRepo(this._extensionContext, deliverMessage);
+
+    if (!owner || !repo) {
+      return;
+    }
+
+    dispatchRunnerClientWorkflow(
       deliverMessage,
       serverAddress,
       os,
       sessionId,
       githubRef,
+      {
+        owner,
+        repo,
+        ref: 'refs/heads/master',
+      },
+      (timeout) => (this._workflowDispatchTimeout = timeout),
     );
   }
 
@@ -377,6 +401,7 @@ export class RemoteSession implements Disposable {
   }
 
   disconnectRunner(error?: RunnerError): void {
+    this.clearWorkflowDispatchTimeoutIfNeeded();
     this.socket?.offAny();
     this.socket?.disconnect();
     this.fileSystem.removeSocket();
