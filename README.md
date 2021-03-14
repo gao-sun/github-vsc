@@ -20,54 +20,43 @@ E.g. `github.com/gao-sun/eul` -> `github-vsc.com/gao-sun/eul`
 
 📝 Cozy. Can just be an online editor without remote session.
 
-## Screenshots
+## Launch a Remote Session for Dev
 
-![Preview](https://user-images.githubusercontent.com/14722250/108383244-90f12f00-7244-11eb-9332-c34fe464f129.png)
+1. Activate the 6th tab with GitHub logo in the side bar.
+2. Setup your PAT for forking the [runner repo](https://github.com/gao-sun/github-vsc-runner).
+3. Choose the nearest runner server and preferred OS, then click "Start Session".
 
-## Limitations
+## Is It Free?
 
-### Quick Navigation
+TL;DR: **YES. 1) 6 hours per session with PAT. 2) 72 hours with self-hosted runners.**
 
-Since there're some huge repos containing thousands of folders/files (imagine someone uploaded `node_modules/`), it'll significantly increase the responding time if we fetch all the files from GitHub API. Thus GitHub VSC will only search current folder when you are typing in the `Cmd + P` panel.
+### Why 6 Hours?
 
-Say the repo has the structure of `foo/a/file1` and `foo/b/file2`:
+For GitHub-hosted runners, quote from the [Usage Limit](https://docs.github.com/en/actions/reference/usage-limits-billing-and-administration#usage-limits) section in the official docs:
 
-1. When you typed `foo/` it will show the result as the combination of `foo/a` and `foo/b`.
-2. When you typed `foo/a/` it will show a single result `foo/a/file1`.
+> Each job in a workflow can run for up to 6 hours of execution time.
 
-### Global Text Search
+Which means the runner job will be killed after you reach that limit. Also you may notice:
 
-Quote from [GitHub docs](https://docs.github.com/en/rest/reference/search#considerations-for-code-search):
+> You can execute up to 1000 API requests in an hour across all actions within a repository.
 
-> Due to the complexity of searching code, there are a few restrictions on how searches are performed:
->
-> - Only the _default branch_ is considered. In most cases, this will be the `master` branch.
-> - Only files smaller than 384 KB are searchable.
+We're enforcing WebSocket for data transmission inside the job so it'll be OK for casual development.
 
-Also, the global text search result has NO pagination yet. (It always shows page 1)
+### Why 72 Hours?
+
+Unfortunately, self-hosted runners also have a [Usage Limit](https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners#usage-limits) on the total run time of workflow itself (i.e. 72 hours), and the 1,000 API requests limit also applies.
+
+### Any Method to Get Rid of All These Limitations?
+
+Yes. But there's no one-line script yet. The basic concept is to setup fully controlled runner server/client and trigger client deployment by API hook/network event. Feel free to open an issue if you are interested.
+
+## Online Editor
+
+If you'd like to just do some quick editing, then no need for starting a remote session. Go ahead to make some changes, and you're ready to commit changes to the branch directly or open a pull request based on your access to the repo. [Learn more about the online editor](docs/online-editor.md).
 
 ## Engineering
 
-### It's Static
-
-GitHub VSC contains only static assets and it's hosted by GitHub Pages. The deployment is in [github-vsc-website](https://github.com/gao-sun/github-vsc-website).
-
-### VSCode in Web
-
-Powered by the [Code - OSS](https://github.com/microsoft/vscode) project, and use the tag `1.53.2` for building. Would like not to do any modifications to keep it clean, but here comes to the result (I've tried hard, trust me):
-
-- `src/vs/code/browser/workbench/workbench.ts` for simple workbench and several html `window` related commands.
-- `src/vs/code/browser/workbench/one_dark.ts` for One Dark theme.
-- `src/vs/workbench/browser/parts/activitybar/activitybarActions.extended.ts` for an extended command to set the index of active side bar. (They just have go prev/next for now, interesting)
-- `src/vs/workbench/contrib/welcome/page/browser/vs_code_welcome_page.ts` for customized welcome page.
-
-### VSCode Extension
-
-Heads to `extensions/github-vsc`, and 2 webpack configs will be shown:
-
-- `webpack.extension.js` and `extension/` for extension itself which runs in a `webworker` environment.
-- `webpack.web.js` and `control-panel/` for the control panel web view which using React / SASS modules.
-- `d.ts/` and `types/` include shared type definitions.
+See [detailed explanation](docs/online-editor.md).
 
 ## Try It Locally
 
