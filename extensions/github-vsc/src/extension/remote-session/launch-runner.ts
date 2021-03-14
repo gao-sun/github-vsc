@@ -6,7 +6,7 @@ import sealedBox from 'tweetnacl-sealedbox-js';
 import {
   createFork,
   dispatchRunnerWorkflow,
-  enableRunnerWorkflow,
+  enableRunnerRepoActions,
   getActionsPublicKey,
   isForkReady,
   updateActionsRepoSecret,
@@ -86,8 +86,8 @@ export const launchRunnerClient = async (
     const ref = 'refs/heads/master';
 
     await setupRepoPAT(extensionContext, deliverMessage, owner, repo);
-    deliverMessage('Enabling workflow for runner client...');
-    await enableRunnerWorkflow(owner, repo);
+    deliverMessage('Enabling Actions for runner client repo...');
+    await enableRunnerRepoActions(owner, repo);
     deliverMessage('Launching workflow for runner client...');
     await dispatchRunnerWorkflow(
       owner,
