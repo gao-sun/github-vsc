@@ -45,7 +45,7 @@ const getSessionDict = (context: ExtensionContext) => getVSCodeData(context)?.se
 export const getSessionData = (
   context: ExtensionContext,
   githubRef: Optional<GitHubRef>,
-): Optional<SessionData> => getVSCodeData(context)?.sessionDict[getRefKey(githubRef)];
+): Optional<SessionData> => getVSCodeData(context)?.sessionDict?.[getRefKey(githubRef)];
 
 export const setSessionData = (
   context: ExtensionContext,
