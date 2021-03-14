@@ -114,7 +114,7 @@ Make sure you are prepared for the same prerequisites as [Code - OSS](https://gi
 yarn
 # clone and build Code - OSS
 yarn build-vsc
-# happy hacking on localhost:8080
+# happy hacking on https://localhost:8080
 yarn dev
 ```
 
