@@ -89,7 +89,7 @@ Runner servers are not hosted by GitHub. The bill sends to me. :-) They are host
 
 ## I Know There's One More Question...
 
-Compare to officially provided GitHub Codespaces:
+Compare to the officially provided GitHub Codespaces:
 
 |                    | GitHub VSC          | GitHub Codespaces                                                                                                                                                                  |
 |--------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
