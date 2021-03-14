@@ -1,5 +1,7 @@
 # GitHub VSC Online Editor
 
+Edit changes and commit to the branch directly, or start a pull request.
+
 ## Screenshots
 
 ![Preview](https://user-images.githubusercontent.com/14722250/108383244-90f12f00-7244-11eb-9332-c34fe464f129.png)

@@ -1,3 +1,35 @@
+# Engineering
+
+## Remote Session
+
+### Overview
+
+The architecture is quite simple: 
+
+```
+Browser VSC <---wss---> Runner Server <---wss---> Runner Client
+```
+
+This is what will happen when you click "Start Session" in browser:
+
+1. Browser VSC establishes WebSocket connection to the runner server.
+2. Browser VSC requests a new session.
+3. Runner server generates a new session ID and tell Browser VSC the session is started.
+4. Browser VSC tries to launch runner client by dispatching workflow with session data.
+5. Browser VSC waits for runner client status report.
+6. Workflow installs and launches runner client.
+7. Runner server receives runner client for current session, then tells browser VSC it's ready to use.
+
+Note the workflow will run in a forked repo to avoid easy usage limit hitting.
+
+### Terminal
+
+When runner client is online, terminal data will be exchanged via WebSocket. Session ID is required to map correct clients.
+
+### Port Forwarding
+
+Only HTTP requests are supported for now. WebSocket forwarding is not availble.
+
 ## VSCode in Web
 
 The VSCode in your browser contains only static assets and it's hosted by GitHub Pages. The deployment is in [github-vsc-website](https://github.com/gao-sun/github-vsc-website).

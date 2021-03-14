@@ -54,7 +54,7 @@ Unfortunately, self-hosted runners also have a [Usage Limit](https://docs.github
 
 ### Any Method to Get Rid of All These Limitations?
 
-Yes. But there's no one-line script yet. The basic concept is to setup fully controlled runner server/client and trigger client deployment by API hook/network event. Feel free to open an issue if you are interested.
+Yes. But there's no one-line script yet. The basic concept is to setup fully controlled runner client and trigger client deployment by API hook/network event. Feel free to open an issue if you are interested.
 
 ## Is It Safe?
 
@@ -68,6 +68,8 @@ Your connection is always under a secure protocol (HTTPS/WSS) and all session ID
 
 > With the speed of 1000 IDs per second, ~21 million years needed, in order to have a 1% probability of at least one collision.
 
+Treat your session ID as credentials.
+
 ### Burn after Use
 
 Thanks to the nature of GitHub Actions, there's no need to worry about setup and disposal. Your dev environment will be cleaned up as soon as you terminate the session from here or cancel the workflow run. 
@@ -75,6 +77,25 @@ Thanks to the nature of GitHub Actions, there's no need to worry about setup and
 ## Online Editor
 
 If you'd like to just do some quick editing, then no need for starting a remote session. Go ahead to make some changes, and you're ready to commit changes to the branch directly or open a pull request based on your access to the repo. [Learn more about the online editor](docs/online-editor.md).
+
+## Specifications
+
+Click [here](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources) to see VM hardwares for GitHub-hosted runners. You can also find supported softwares within that page.
+
+Runner servers are not hosted by GitHub. The bill sends to me. :-) They are hosted in Microsoft Azure since it's backing GitHub Actions as well.
+
+## I Know There's One More Question...
+
+Compare to officially provided GitHub Codespaces:
+
+|                    | GitHub VSC          | GitHub Codespaces                                                                                                                                                                  |
+|--------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Type               | Open-Source Project | Developed by GitHub                                                                                                                                                                |
+| Pricing            | Free                | From $0.085/hr to $0.339/hr, with additional monthly storage costs. [Learn more](https://docs.github.com/en/github/developing-online-with-codespaces/about-billing-for-codespaces) |
+| OS                 | Ubuntu, macOS       | Ubuntu                                                                                                                                                                             |
+| Private Deployment | Available           | N/A                                                                                                                                                                                |
+| VSCode Extension   | Built-in            | Support marketplace                                                                                                                                                                |
+| Code Navigation    | Not Yet             | ✔️                                                                                                                                                                                  |
 
 ## Engineering
 

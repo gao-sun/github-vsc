@@ -26,7 +26,7 @@ To create a production build, use yarn build.
 
 Then open the control panel in GitHub VSC, click "Enable" under port forwarding section, and change the port number to 3000:
 
-![port-forwarding](https://user-images.githubusercontent.com/14722250/111059321-ac5ffa80-84cf-11eb-9f26-a933675d1cd8.png)
+<img width="500" alt="port-forwarding" src="https://user-images.githubusercontent.com/14722250/111059321-ac5ffa80-84cf-11eb-9f26-a933675d1cd8.png" />
 
 And you are all set. Click the link to see the result:
 
