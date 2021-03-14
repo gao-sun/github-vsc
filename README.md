@@ -18,7 +18,7 @@ E.g. `github.com/gao-sun/eul` -> `github-vsc.com/gao-sun/eul`
 
 🔌 Flexible. Available for private repos and self-hosted runners.
 
-📝 Cozy. Can just be an online editor without remote session.
+📝 Cozy. Can only be an online editor without remote session.
 
 ## Start a Remote Session for Dev
 
