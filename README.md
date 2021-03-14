@@ -34,7 +34,10 @@ For safety concerns, port forwarding is disabled by default. Enable with simple 
 
 ## Is It Free?
 
-TL;DR: **YES. 1) 6 hours per session with PAT. 2) 72 hours with self-hosted runners.**
+TL;DR: **YES.**
+
+- 6 hours per session with PAT.
+- 72 hours with self-hosted runners.
 
 ### Why 6 Hours?
 
