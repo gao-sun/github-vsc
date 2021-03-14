@@ -206,6 +206,16 @@ export const isForkReady = async (owner: string, repo: string): Promise<boolean>
   return true;
 };
 
+export const enableRunnerWorkflow = (
+  owner: string,
+  repo: string,
+): Promise<RestEndpointMethodTypes['actions']['enableWorkflow']['response']> =>
+  octokit.actions.enableWorkflow({
+    owner,
+    repo,
+    workflow_id: 'runner-client.yml',
+  });
+
 export const dispatchRunnerWorkflow = (
   owner: string,
   repo: string,
