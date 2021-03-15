@@ -1,3 +1,5 @@
+# This project may violate GitHub Actions usage, so I'm going to archive the repo soon. Please consider using other alternatives. Thanks.
+
 # GitHub VSC
 
 Launch VSCode dev environment in your browser. For free.
