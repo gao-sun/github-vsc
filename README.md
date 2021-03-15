@@ -1,4 +1,4 @@
-# This project may violate GitHub Actions usage, so I'm going to archive the repo soon. Please consider using other alternatives. Thanks.
+# This project may violate GitHub Actions usage policy, so I'm going to archive the repo soon. Please consider using other alternatives. Thanks.
 
 # GitHub VSC
 
