@@ -32,7 +32,7 @@ E.g. `github.com/gao-sun/eul` -> `github-vsc.com/gao-sun/eul`
 
 ## Port Forwarding
 
-For safety concerns, port forwarding is disabled by default. Enable with simple one-click and you can access the local port with HTTP reqeists via `https://[session-id].runner-[locaiton].github-vsc.com`. See the tutorial [here](docs/port-forwarding.md).
+For safety concerns, port forwarding is disabled by default. Enable with simple one-click and you can access the local port with HTTP reqeists via `https://[session-id].runner-[location].github-vsc.com`. See the tutorial [here](docs/port-forwarding.md).
 
 ## Is It Free?
 
